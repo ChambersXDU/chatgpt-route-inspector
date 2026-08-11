@@ -58,7 +58,7 @@ The following example shows a request for `GPT 5.6 Pro` with a response route of
 
 ### Install a release package manually
 
-1. Download and extract [`chatgpt-route-inspector-1.0.1.zip`](https://github.com/Liu-Bot24/chatgpt-route-inspector/releases/download/v1.0.1/chatgpt-route-inspector-1.0.1.zip).
+1. Download and extract [`chatgpt-route-inspector-1.0.2.zip`](https://github.com/Liu-Bot24/chatgpt-route-inspector/releases/download/v1.0.2/chatgpt-route-inspector-1.0.2.zip).
 2. Open `chrome://extensions/`.
 3. Enable **Developer mode**.
 4. Click **Load unpacked**.

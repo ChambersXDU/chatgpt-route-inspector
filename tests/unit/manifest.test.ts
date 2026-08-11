@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 function manifest() {
   return JSON.parse(readFileSync(new URL('../../manifest/manifest.json', import.meta.url), 'utf8')) as {
     manifest_version: number;
+    version: string;
     permissions: string[];
     host_permissions: string[];
     content_scripts: Array<{ matches: string[]; world: string }>;
@@ -25,6 +26,7 @@ describe('extension permissions', () => {
   it('uses one minimal manifest with no browser debugging permission', () => {
     const value = manifest();
     expect(value.manifest_version).toBe(3);
+    expect(value.version).toBe('1.0.2');
     expect(value.permissions).toEqual(['storage']);
     expect(value.permissions).not.toContain('activeTab');
     expect(value.permissions).not.toContain('debugger');

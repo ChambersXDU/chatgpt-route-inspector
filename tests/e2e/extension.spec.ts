@@ -327,6 +327,18 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   }, storageKey)).toBe('null:gpt-5-6-pro');
   await domFallbackTab.close();
 
+  const projectReloadTab = await context.newPage();
+  await projectReloadTab.goto('http://127.0.0.1:43996/g/g-p-e2e-project/c/e2e-conversation');
+  await projectReloadTab.evaluate(() => localStorage.setItem('route-fixture-reload', '1'));
+  await projectReloadTab.reload();
+  const projectOverlay = projectReloadTab.locator('#chatgpt-route-inspector-root');
+  await expect(projectOverlay).toHaveCount(1);
+  await expect.poll(() => projectOverlay.evaluate((element) => element.shadowRoot?.textContent ?? ''))
+    .toContain('gpt-5-5-mini');
+  await expect.poll(() => projectOverlay.evaluate((element) => element.shadowRoot?.textContent ?? ''))
+    .toContain('resolved_model_slug');
+  await projectReloadTab.close();
+
   await page.evaluate(() => localStorage.setItem('route-fixture-reload', '1'));
   await page.reload();
   await expect(overlay).toHaveCount(1);

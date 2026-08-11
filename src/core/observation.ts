@@ -1,4 +1,5 @@
 import { EMPTY_ROUTE_FIELDS, type CaptureMode, type CapturePhase, type CaptureSource, type RouteFields, type RouteObservation } from './types';
+import { redactConversationPathname } from './chatgpt-path';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -25,8 +26,7 @@ function safePageUrl(value: unknown): string | null {
     if (!['http:', 'https:'].includes(url.protocol)) return null;
     url.search = '';
     url.hash = '';
-    url.pathname = url.pathname
-      .replace(/^\/c\/[^/]+/, '/c/[redacted]')
+    url.pathname = redactConversationPathname(url.pathname)
       .replace(/^\/backend-api\/conversation\/[^/]+/, '/backend-api/conversation/[redacted]');
     return url.toString();
   } catch {

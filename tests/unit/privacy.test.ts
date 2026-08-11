@@ -23,6 +23,16 @@ describe('privacy exports', () => {
     expect(sanitizeTurn(turn, true).requestId).toBe('request-uvwxyz');
   });
 
+  it('redacts project and conversation ids in exported project URLs', () => {
+    const projectTurn = createTurn({
+      captureId: 'capture-project', source: 'conversation_record', captureMode: 'reload', phase: 'completed',
+      observedAt: '2026-08-11T01:00:00.000Z',
+      pageUrl: 'https://chatgpt.com/g/g-p-private-project/c/private-conversation',
+      conversationId: 'private-conversation', resolvedModelSlug: 'gpt-5-6-pro'
+    });
+    expect(sanitizeTurn(projectTurn).pageUrl).toBe('https://chatgpt.com/g/[redacted]/c/[redacted]');
+  });
+
   it('produces a readable report', () => {
     const state = {
       turns: [turn], powReadings: [], settings: { ...DEFAULT_SETTINGS },

@@ -16,6 +16,15 @@ describe('normalizeObservation', () => {
     expect(result).not.toHaveProperty('answer');
   });
 
+  it('redacts project and conversation ids from project conversation URLs', () => {
+    const result = normalizeObservation({
+      captureId: 'capture-project', source: 'conversation_record', captureMode: 'reload', phase: 'completed',
+      observedAt: '2026-08-11T01:00:00.000Z',
+      pageUrl: 'https://chatgpt.com/g/g-p-private-project/c/private-conversation?token=secret#fragment'
+    });
+    expect(result?.pageUrl).toBe('https://chatgpt.com/g/[redacted]/c/[redacted]');
+  });
+
   it('rejects invalid sources, modes, dates, and non-object input', () => {
     expect(normalizeObservation(null)).toBeNull();
     expect(normalizeObservation({ captureId: 'x', source: 'forged', captureMode: 'live', phase: 'completed', observedAt: new Date().toISOString() })).toBeNull();

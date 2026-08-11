@@ -1,4 +1,5 @@
 import type { InspectorState, RouteTurn, UiLanguage } from './types';
+import { redactConversationPathname } from './chatgpt-path';
 
 function redactedId(value: string | null): string | null {
   if (!value) return null;
@@ -9,7 +10,7 @@ function sanitizePageUrl(value: string | null): string | null {
   if (!value) return null;
   try {
     const url = new URL(value);
-    if (url.pathname.startsWith('/c/')) url.pathname = '/c/[redacted]';
+    url.pathname = redactConversationPathname(url.pathname);
     if (url.pathname.startsWith('/backend-api/conversation/')) url.pathname = '/backend-api/conversation/[redacted]';
     url.search = '';
     url.hash = '';

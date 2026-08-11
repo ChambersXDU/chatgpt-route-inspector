@@ -1,4 +1,5 @@
 import type { CaptureMode, InspectorState, RouteTurn, UiLanguage } from '../core/types';
+import { conversationIdFromPathname } from '../core/chatgpt-path';
 import { isPageBridgeEnvelope, type RuntimeRequest, type RuntimeResponse } from '../shared/messages';
 import { AUTHOR_LINK, AUTHOR_TEXT } from '../ui/shared/branding';
 import { t } from '../ui/shared/i18n';
@@ -83,8 +84,7 @@ function escapeHtml(value: unknown): string {
 }
 
 function conversationIdFromPath(): string | null {
-  const match = /^\/c\/([^/]+)/.exec(location.pathname);
-  return match?.[1] ? decodeURIComponent(match[1]) : null;
+  return conversationIdFromPathname(location.pathname);
 }
 
 function hasCurrentDocumentConversationRecord(): boolean {
