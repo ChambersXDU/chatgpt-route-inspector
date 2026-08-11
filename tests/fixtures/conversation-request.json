@@ -1,0 +1,18 @@
+{
+  "model": "gpt-5-6-pro",
+  "thinking_effort": "standard",
+  "conversation_id": "conv-private-123456",
+  "parent_message_id": "parent-private-123456",
+  "conversation_mode": { "kind": "primary_assistant" },
+  "messages": [
+    {
+      "id": "input-private-123456",
+      "author": { "role": "user" },
+      "content": { "content_type": "text", "parts": ["SECRET_PROMPT_MUST_NOT_SURVIVE"] },
+      "metadata": {
+        "selected_sources": ["web", "drive"],
+        "attachments": [{ "name": "private.pdf" }]
+      }
+    }
+  ]
+}

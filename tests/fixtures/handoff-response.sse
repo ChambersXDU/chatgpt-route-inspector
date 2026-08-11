@@ -1,0 +1,9 @@
+event: resume_conversation_token
+data: {"type":"resume_conversation_token","token":"HANDOFF_SECRET_MUST_NOT_SURVIVE"}
+
+event: stream_handoff
+data: {"type":"stream_handoff"}
+
+event: subscribe_ws_topic
+data: {"type":"subscribe_ws_topic","topic_id":"topic-private-123456"}
+

@@ -1,0 +1,5 @@
+data: {"type":"server_ste_metadata","metadata":{"model_slug":"gpt-5-5-mini","default_model_slug":"gpt-5-6-pro","resolved_model_slug":"gpt-5-5-mini","plan_type":"pro","request_id":"req-abnormal-123456","conversation_id":"conv-private-123456","fast_convo":true}}
+
+data: {"message":{"id":"assistant-message-1","author":{"role":"assistant"},"content":{"content_type":"text","parts":["SECRET_ANSWER_MUST_NOT_SURVIVE"]},"metadata":{"model_slug":"gpt-5-6-pro","default_model_slug":"gpt-5-6-pro","resolved_model_slug":"gpt-5-5-mini","request_id":"req-abnormal-123456","tool_invoked":false,"is_search":false,"did_prompt_contain_image":false}}}
+
+data: [DONE]

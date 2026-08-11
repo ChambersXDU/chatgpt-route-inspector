@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "ChatGPT Route Inspector"
+  },
+  "extensionDescription": {
+    "message": "Compare ChatGPT's requested model with server-reported routing metadata without storing chat content."
+  }
+}

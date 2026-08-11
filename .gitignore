@@ -1,0 +1,10 @@
+node_modules/
+dist/
+release/
+coverage/
+playwright-report/
+test-results/
+output/playwright/
+.tmp/
+DEVELOPMENT_LOG.md
+*.log

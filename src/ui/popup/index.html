@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title data-i18n="popup.title">Route Inspector</title>
+  <link rel="stylesheet" href="../shared/styles.css">
+</head>
+<body class="popup-shell">
+  <header class="masthead">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <div class="brand-copy">
+        <div class="brand-title-line">
+          <h1 data-i18n="app.name">Route Inspector</h1>
+          <a class="author-link" href="https://blog.liu-qi.cn/tools/" target="_blank" rel="noopener noreferrer" data-i18n="app.author">Created by @liuqi</a>
+        </div>
+        <p data-i18n="popup.subtitle">服务器报告的路由遥测</p>
+      </div>
+    </div>
+    <div class="masthead-controls">
+      <div class="language-switch" role="group" aria-label="切换语言" data-i18n-aria-label="language.label">
+        <button type="button" data-language="en" aria-pressed="false">EN</button>
+        <button type="button" data-language="zh" aria-pressed="true">中</button>
+      </div>
+      <span id="capture-status" class="signal-pill" data-i18n="status.idle">待机</span>
+    </div>
+  </header>
+  <main class="popup-content">
+    <div class="popup-control-grid">
+      <section class="capture-console" aria-label="捕获模式" data-i18n-aria-label="capture.section">
+        <div class="mode-selector" role="group" aria-label="选择捕获模式" data-i18n-aria-label="capture.select">
+          <button id="mode-live" data-mode="live" type="button"><span>01</span><b data-i18n="mode.live">实时请求</b></button>
+          <button id="mode-reload" data-mode="reload" type="button"><span>02</span><b data-i18n="mode.reload">会话重载</b></button>
+        </div>
+        <p id="mode-hint" class="mode-hint"></p>
+      </section>
+      <section class="capture-console overlay-console" aria-label="页面浮窗" data-i18n-aria-label="overlay.section">
+        <div class="console-label"><span data-i18n="overlay.label">页面浮窗</span><small id="overlay-state">已显示</small></div>
+        <div class="mode-selector" role="group" aria-label="控制页面浮窗" data-i18n-aria-label="overlay.controls">
+          <button id="overlay-show" data-overlay="show" type="button"><span>ON</span><b data-i18n="overlay.show">显示浮窗</b></button>
+          <button id="overlay-hide" data-overlay="hide" type="button"><span>OFF</span><b data-i18n="overlay.hide">隐藏浮窗</b></button>
+        </div>
+      </section>
+    </div>
+    <div class="popup-result-grid">
+      <section class="hero-readout" id="hero"></section>
+      <section class="metric-grid" id="metrics"></section>
+    </div>
+    <div class="button-stack">
+      <button class="button primary" id="dashboard" data-i18n="button.openDashboard">打开诊断台</button>
+      <button class="button" id="copy" data-i18n="button.copySummary">复制本轮摘要</button>
+      <button class="button quiet wide" id="options" data-i18n="button.options">设置与隐私</button>
+    </div>
+    <div class="privacy-note"><strong data-i18n="privacy.local">本地解析</strong>　<span data-i18n="privacy.popup">不保存提示词和回答正文；扩展只保留路由白名单字段。</span></div>
+  </main>
+  <footer class="footer-link"><span data-i18n="footer.localAuto">本地 / 自动</span><span id="record-count">0 条记录</span></footer>
+  <div class="toast" id="toast"></div>
+  <script src="index.js"></script>
+</body>
+</html>

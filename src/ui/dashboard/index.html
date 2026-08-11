@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title data-i18n="dashboard.documentTitle">Route Inspector · 诊断台</title>
+  <link rel="stylesheet" href="../shared/styles.css">
+</head>
+<body>
+<div class="shell">
+  <header class="masthead">
+    <div class="brand"><span class="brand-mark"></span><div class="brand-copy"><div class="brand-title-line"><h1 data-i18n="app.name">Route Inspector</h1><a class="author-link" href="https://blog.liu-qi.cn/tools/" target="_blank" rel="noopener noreferrer" data-i18n="app.author">Created by @liuqi</a></div><p data-i18n="dashboard.subtitle">请求模型与响应路由字段对照</p></div></div>
+    <div class="masthead-controls"><div class="language-switch" role="group" aria-label="切换语言" data-i18n-aria-label="language.label"><button type="button" data-language="en" aria-pressed="false">EN</button><button type="button" data-language="zh" aria-pressed="true">中</button></div><span class="signal-pill live" data-i18n="dashboard.localOnly">仅保存在本机</span></div>
+  </header>
+  <section class="page-title"><div><span class="eyebrow" data-i18n="dashboard.eyebrow">ChatGPT 路由遥测</span><h2 data-i18n="dashboard.title">路由诊断台</h2><p data-i18n="dashboard.description">实时请求和会话重载分别记录。直接展示请求模型、响应路由模型及其字段来源，不使用百分比或推测。</p></div><div class="toolbar"><button class="button" id="export-json" data-i18n="dashboard.exportJson">导出 JSON</button><button class="button amber" id="export-md" data-i18n="dashboard.exportReport">导出报告</button><button class="button danger" id="clear" data-i18n="dashboard.clear">清空记录</button></div></section>
+  <section class="readout-grid" id="summary"></section>
+  <section class="dashboard-grid" style="margin-top:16px"><div class="column">
+    <article class="panel"><header class="panel-head ledger-head"><h3 data-i18n="dashboard.ledger">捕获记录</h3><div class="filter-stack"><div class="filter-row" id="mode-filters"></div><div class="filter-row" id="filters"></div></div></header><div class="panel-body" style="overflow:auto"><table class="data-table"><thead><tr><th data-i18n="table.time">时间</th><th data-i18n="table.mode">模式</th><th data-i18n="table.request">请求</th><th data-i18n="table.modelLabel">模型标签</th><th data-i18n="table.responseRoute">响应路由</th><th data-i18n="table.verdict">判定</th><th data-i18n="table.routeSource">路由字段来源</th></tr></thead><tbody id="rows"></tbody></table><div class="panel-empty" id="empty" data-i18n="dashboard.empty">当前筛选条件下没有记录。</div></div></article>
+  </div><aside class="column"><article class="panel"><header class="panel-head"><h3 data-i18n="dashboard.evidence">证据字段</h3><span id="detail-tag" class="tag amber">UNKNOWN</span></header><div class="panel-body" id="detail"></div></article><article class="panel"><header class="panel-head"><h3 data-i18n="dashboard.health">解析状态</h3></header><div class="panel-body" id="health"></div></article></aside></section>
+  <div class="toast" id="toast"></div>
+</div>
+<script src="index.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "ChatGPT 路由检查器"
+  },
+  "extensionDescription": {
+    "message": "对照 ChatGPT 的请求模型与服务器报告的路由元数据，不保存聊天正文。"
+  }
+}
