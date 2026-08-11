@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 function manifest() {
@@ -25,7 +25,8 @@ describe('extension permissions', () => {
   it('uses one minimal manifest with no browser debugging permission', () => {
     const value = manifest();
     expect(value.manifest_version).toBe(3);
-    expect(value.permissions).toEqual(['storage', 'activeTab']);
+    expect(value.permissions).toEqual(['storage']);
+    expect(value.permissions).not.toContain('activeTab');
     expect(value.permissions).not.toContain('debugger');
     expect(value.host_permissions).toEqual(['https://chatgpt.com/*', 'https://chat.openai.com/*']);
     expect(value.content_scripts.map((script) => script.world)).toEqual(['MAIN', 'ISOLATED']);
@@ -49,11 +50,23 @@ describe('extension permissions', () => {
     }
   });
 
-  it('ships valid English and Chinese native extension metadata', () => {
-    for (const locale of ['en', 'zh_CN']) {
+  it('ships store metadata for ten selected locales within Chrome limits', () => {
+    const expectedLocales = ['de', 'en', 'es', 'fr', 'hi', 'id', 'ja', 'ko', 'pt_BR', 'zh_CN'];
+    const actualLocales = readdirSync(new URL('../../_locales/', import.meta.url), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
+    expect(actualLocales).toEqual([...expectedLocales].sort());
+
+    for (const locale of expectedLocales) {
       const messages = JSON.parse(readFileSync(new URL(`../../_locales/${locale}/messages.json`, import.meta.url), 'utf8')) as Record<string, { message?: string }>;
-      expect(messages.extensionName?.message).toBeTruthy();
-      expect(messages.extensionDescription?.message).toBeTruthy();
+      const name = messages.extensionName?.message ?? '';
+      const description = messages.extensionDescription?.message ?? '';
+      expect(name).toContain('ChatGPT');
+      expect(name.length).toBeGreaterThan(0);
+      expect(name.length).toBeLessThanOrEqual(75);
+      expect(description.length).toBeGreaterThan(0);
+      expect(description.length).toBeLessThanOrEqual(132);
     }
   });
 });

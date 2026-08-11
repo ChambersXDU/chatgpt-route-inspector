@@ -14,9 +14,24 @@ describe('classifyEndpoint', () => {
     });
   });
 
+  it('matches current and legacy PoW requirements endpoints', () => {
+    for (const path of [
+      '/backend-api/sentinel/chat-requirements/prepare',
+      '/backend-anon/sentinel/chat-requirements/prepare/',
+      '/api/sentinel/chat-requirements/prepare',
+      '/backend-api/sentinel/chat-requirements',
+      '/backend-anon/sentinel/chat-requirements/',
+      '/api/sentinel/chat-requirements'
+    ]) {
+      expect(classifyEndpoint(path).kind).toBe('pow_requirements');
+    }
+  });
+
   it('does not match similar or malformed paths', () => {
     expect(classifyEndpoint('/backend-api/f/conversation/extra').kind).toBe('other');
     expect(classifyEndpoint('/backend-api/conversation/a/messages').kind).toBe('other');
+    expect(classifyEndpoint('/backend-api/sentinel/chat-requirements/finalize').kind).toBe('other');
+    expect(classifyEndpoint('/backend-api/sentinel/chat-requirements/prepare/extra').kind).toBe('other');
     expect(classifyEndpoint('http://%')).toEqual({ kind: 'other', conversationId: null });
   });
 });

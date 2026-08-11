@@ -1,11 +1,12 @@
 import { classifyEndpoint } from '../core/endpoints';
+import { parsePowResponse } from '../core/pow';
 import {
   parseConversationCorrelation,
   parseConversationRequest,
   type ConversationCorrelation
 } from '../core/request-parser';
 import { mergeRouteFields, parseResponseText } from '../core/response-parser';
-import type { RouteFields, RouteObservation } from '../core/types';
+import type { PowObservation, RouteFields, RouteObservation } from '../core/types';
 import { parseWebSocketFrame, type WebSocketRouteEvidence } from '../core/websocket-parser';
 import type { PageBridgeEnvelope } from '../shared/messages';
 
@@ -13,6 +14,7 @@ const nativeFetch = window.fetch;
 const nativeWebSocket = window.WebSocket;
 const allowedOrigins = new Set(__ROUTE_INSPECTOR_ALLOWED_ORIGINS__);
 const MAX_CONVERSATION_RECORD_BYTES = 8 * 1024 * 1024;
+const MAX_POW_RESPONSE_BYTES = 256 * 1024;
 const MAX_STREAM_EVENT_BYTES = 1024 * 1024;
 const MAX_PENDING_CAPTURES = 32;
 const PENDING_CAPTURE_TTL_MS = 10 * 60 * 1000;
@@ -30,6 +32,15 @@ function emit(observation: RouteObservation): void {
     source: 'chatgpt-route-inspector',
     version: 1,
     observation
+  };
+  window.postMessage(envelope, location.origin);
+}
+
+function emitPow(pow: PowObservation): void {
+  const envelope: PageBridgeEnvelope = {
+    source: 'chatgpt-route-inspector',
+    version: 1,
+    pow
   };
   window.postMessage(envelope, location.origin);
 }
@@ -313,6 +324,16 @@ async function parseConversationJson(
   }
 }
 
+async function parsePowJson(response: Response): Promise<void> {
+  const declaredLength = Number(response.headers.get('content-length') ?? '0');
+  if (declaredLength > MAX_POW_RESPONSE_BYTES) return;
+  const raw = await response.text();
+  if (raw.length > MAX_POW_RESPONSE_BYTES) return;
+  const parsed = parsePowResponse(JSON.parse(raw) as unknown);
+  if (!parsed) return;
+  emitPow({ rawHex: parsed.rawHex, observedAt: now() });
+}
+
 async function inspectFetch(
   downstreamFetch: typeof window.fetch,
   receiver: unknown,
@@ -350,7 +371,9 @@ async function inspectFetch(
   try {
     const response = await responsePromise;
     const clone = response.clone();
-    if (endpoint.kind === 'conversation_stream') {
+    if (endpoint.kind === 'pow_requirements') {
+      void parsePowJson(clone).catch(() => undefined);
+    } else if (endpoint.kind === 'conversation_stream') {
       void requestFieldsPromise.then((fields) => parseSseStream(
         clone,
         captureId,
@@ -383,6 +406,7 @@ async function inspectFetch(
     }
     return response;
   } catch (error) {
+    if (endpoint.kind === 'pow_requirements') throw error;
     emit({
       captureId,
       source: endpoint.kind === 'conversation_stream' ? 'page_fetch' : 'conversation_record',

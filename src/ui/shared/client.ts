@@ -1,4 +1,4 @@
-import type { CaptureMode, InspectorState, RouteTurn, RouteVerdict, UiLanguage } from '../../core/types';
+import type { CaptureMode, InspectorState, PowReading, RouteTurn, RouteVerdict, UiLanguage } from '../../core/types';
 import type { RuntimeRequest, RuntimeResponse } from '../../shared/messages';
 import { t } from './i18n';
 
@@ -121,9 +121,13 @@ export function assessmentReasons(turn: RouteTurn, language: UiLanguage): string
 }
 
 export function latestForTab(state: InspectorState, tabId?: number, mode = state.settings.captureMode): RouteTurn | null {
-  return state.turns.find((turn) => turn.captureMode === mode && (tabId === undefined || turn.tabId === tabId))
-    ?? state.turns.find((turn) => turn.captureMode === mode)
-    ?? null;
+  if (tabId === undefined) return null;
+  return state.turns.find((turn) => turn.captureMode === mode && turn.tabId === tabId) ?? null;
+}
+
+export function latestPowForTab(state: InspectorState, tabId?: number): PowReading | null {
+  if (tabId === undefined) return null;
+  return state.powReadings.find((reading) => reading.tabId === tabId) ?? null;
 }
 
 export function formatTime(value: string | null, language: UiLanguage): string {

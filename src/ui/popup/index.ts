@@ -7,6 +7,7 @@ import {
   formatTime,
   getState,
   latestForTab,
+  latestPowForTab,
   modelLabelSourcesLabel,
   modelLabel,
   recordedModelLabel,
@@ -17,7 +18,7 @@ import {
   turnResultLabel,
   verdictTone
 } from '../shared/client';
-import { applyStaticTranslations, bindLanguageSwitch, t } from '../shared/i18n';
+import { applyStaticTranslations, bindLanguageSwitch, t, type TranslationKey } from '../shared/i18n';
 
 const hero = document.querySelector<HTMLElement>('#hero');
 const metrics = document.querySelector<HTMLElement>('#metrics');
@@ -25,15 +26,39 @@ const captureStatus = document.querySelector<HTMLElement>('#capture-status');
 const recordCount = document.querySelector<HTMLElement>('#record-count');
 const modeHint = document.querySelector<HTMLElement>('#mode-hint');
 const overlayState = document.querySelector<HTMLElement>('#overlay-state');
+const powHex = document.querySelector<HTMLElement>('#pow-hex');
+const powDecimal = document.querySelector<HTMLElement>('#pow-decimal');
+const footerMachine = document.querySelector<HTMLElement>('#footer-machine');
+const footerStatus = document.querySelector<HTMLElement>('#footer-status');
 let activeTabId: number | undefined;
 let state: InspectorState;
+let feedbackKey: TranslationKey | null = null;
+let feedbackTimer: number | null = null;
 
-function toast(message: string): void {
-  const element = document.querySelector<HTMLElement>('#toast');
-  if (!element) return;
-  element.textContent = message;
-  element.classList.add('show');
-  window.setTimeout(() => element.classList.remove('show'), 1800);
+function footerState(turnExists: boolean): { key: TranslationKey; tone: string } {
+  if (!state.settings.autoCaptureEnabled) return { key: 'status.paused', tone: 'idle' };
+  if (state.settings.captureMode === 'live') return { key: 'status.liveListening', tone: 'signal' };
+  return turnExists
+    ? { key: 'status.reloadCaptured', tone: 'signal' }
+    : { key: 'status.waitingReload', tone: 'amber' };
+}
+
+function renderFooterStatus(key: TranslationKey, tone: string): void {
+  if (footerStatus) footerStatus.textContent = t(state.settings.uiLanguage, key);
+  if (footerMachine) footerMachine.dataset.tone = tone;
+}
+
+function showFeedback(key: TranslationKey, tone = 'signal'): void {
+  feedbackKey = key;
+  if (feedbackTimer !== null) window.clearTimeout(feedbackTimer);
+  renderFooterStatus(key, tone);
+  feedbackTimer = window.setTimeout(() => {
+    feedbackKey = null;
+    feedbackTimer = null;
+    const turn = latestForTab(state, activeTabId, state.settings.captureMode);
+    const persistent = footerState(Boolean(turn));
+    renderFooterStatus(persistent.key, persistent.tone);
+  }, 1800);
 }
 
 function render(next: InspectorState): void {
@@ -41,6 +66,7 @@ function render(next: InspectorState): void {
   const language = state.settings.uiLanguage;
   const mode = state.settings.captureMode;
   const turn = latestForTab(state, activeTabId, mode);
+  const pow = latestPowForTab(state, activeTabId);
   applyStaticTranslations(language);
   document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) => {
     button.classList.toggle('active', button.dataset.mode === mode);
@@ -54,6 +80,10 @@ function render(next: InspectorState): void {
   if (overlayState) overlayState.textContent = t(language, state.settings.overlayEnabled ? 'overlay.visible' : 'overlay.hidden');
   if (modeHint) modeHint.textContent = t(language, mode === 'live' ? 'mode.liveHint' : 'mode.reloadHint');
   if (recordCount) recordCount.textContent = t(language, 'footer.records', { count: state.turns.length });
+  if (powHex) powHex.textContent = pow?.rawHex ?? t(language, 'pow.notCaptured');
+  if (powDecimal) powDecimal.textContent = pow?.decimal ?? '—';
+  const persistentFooter = footerState(Boolean(turn));
+  renderFooterStatus(feedbackKey ?? persistentFooter.key, feedbackKey ? 'signal' : persistentFooter.tone);
   if (captureStatus) {
     captureStatus.textContent = !state.settings.autoCaptureEnabled
       ? t(language, 'status.paused')
@@ -62,10 +92,14 @@ function render(next: InspectorState): void {
   }
   if (hero) {
     const tone = verdictTone(turn?.verdict ?? 'unknown');
-    const rightModel = turn?.verdict === 'conflict'
+    const leftModel = turn ? requestedModelLabel(turn, language) : '—';
+    const rightModel = !turn
+      ? '—'
+      : turn.verdict === 'conflict'
       ? t(language, 'result.routeConflict')
-      : turn?.routeModel ? modelLabel(turn.routeModel, language) : turn ? t(language, 'value.unavailable') : t(language, 'result.waiting');
-    hero.innerHTML = `<div class="eyebrow">${escapeHtml(captureModeLabel(mode, language))} / ${turn ? escapeHtml(formatTime(turn.observedAt, language)) : escapeHtml(t(language, 'value.waiting'))}</div><div class="route-lockup"><div class="route-model"><small>${escapeHtml(t(language, 'field.requested'))}</small><strong>${escapeHtml(requestedModelLabel(turn, language))}</strong></div><div class="route-arrow">→</div><div class="route-model"><small>${escapeHtml(t(language, 'field.responseRoute'))}</small><strong>${escapeHtml(rightModel)}</strong></div></div><div class="verdict-line"><b class="${tone}-text">${escapeHtml(turnResultLabel(turn, language))}</b><span class="tag ${tone}">${escapeHtml(captureModeLabel(mode, language))}</span></div><div class="route-source-line"><span>${escapeHtml(t(language, 'field.route'))}</span><code>${escapeHtml(routeSourcesLabel(turn, language))}</code></div><div class="route-source-line"><span>${escapeHtml(t(language, 'field.label'))}</span><code>${escapeHtml(recordedModelLabel(turn, language))} · ${escapeHtml(modelLabelSourcesLabel(turn, language))}</code></div>`;
+      : turn.routeModel ? modelLabel(turn.routeModel, language) : t(language, 'value.unavailable');
+    const recordedModel = turn ? recordedModelLabel(turn, language) : '—';
+    hero.innerHTML = `<div class="eyebrow">${escapeHtml(captureModeLabel(mode, language))} / ${turn ? escapeHtml(formatTime(turn.observedAt, language)) : escapeHtml(t(language, 'value.waiting'))}</div><div class="route-lockup"><div class="route-model"><small>${escapeHtml(t(language, 'field.requested'))}</small><strong>${escapeHtml(leftModel)}</strong></div><div class="route-arrow">→</div><div class="route-model"><small>${escapeHtml(t(language, 'field.responseRoute'))}</small><strong>${escapeHtml(rightModel)}</strong></div></div><div class="verdict-line"><b class="${tone}-text">${escapeHtml(turnResultLabel(turn, language))}</b><span class="tag ${tone}">${escapeHtml(captureModeLabel(mode, language))}</span></div><div class="route-source-line"><span>${escapeHtml(t(language, 'field.route'))}</span><code>${escapeHtml(routeSourcesLabel(turn, language))}</code></div><div class="route-source-line"><span>${escapeHtml(t(language, 'field.label'))}</span><code>${escapeHtml(recordedModel)} · ${escapeHtml(modelLabelSourcesLabel(turn, language))}</code></div>`;
   }
   if (metrics) metrics.innerHTML = `<div class="metric"><span class="metric-label">${escapeHtml(t(language, 'field.mode'))}</span><span class="metric-value">${escapeHtml(captureModeLabel(mode, language))}</span></div><div class="metric"><span class="metric-label">${escapeHtml(t(language, 'field.duration'))}</span><span class="metric-value">${escapeHtml(formatDuration(turn?.durationMs ?? null))}</span></div><div class="metric"><span class="metric-label">${escapeHtml(t(language, 'field.adapter'))}</span><span class="metric-value">${escapeHtml(turn?.sources.join('+') ?? '—')}</span></div>`;
 }
@@ -79,15 +113,16 @@ async function setLanguage(uiLanguage: UiLanguage): Promise<void> {
 async function setMode(mode: CaptureMode): Promise<void> {
   const response = await send({ type: 'route:update-settings', settings: { captureMode: mode } });
   if (response.state) render(response.state);
-  const language = response.state?.settings.uiLanguage ?? state.settings.uiLanguage;
-  toast(t(language, mode === 'live' ? 'toast.modeLive' : 'toast.modeReload'));
+  showFeedback(mode === 'live' ? 'status.switchedLive' : 'status.switchedReload');
 }
 
 async function setOverlayEnabled(overlayEnabled: boolean): Promise<void> {
-  const response = await send({ type: 'route:update-settings', settings: { overlayEnabled } });
+  const response = await send({
+    type: 'route:update-settings',
+    settings: overlayEnabled ? { overlayEnabled: true, overlayMinimized: false } : { overlayEnabled: false }
+  });
   if (response.state) render(response.state);
-  const language = response.state?.settings.uiLanguage ?? state.settings.uiLanguage;
-  toast(t(language, overlayEnabled ? 'toast.overlayShown' : 'toast.overlayHidden'));
+  showFeedback(overlayEnabled ? 'status.overlayShown' : 'status.overlayHidden');
 }
 
 bindLanguageSwitch(setLanguage);
@@ -102,9 +137,9 @@ document.querySelector('#dashboard')?.addEventListener('click', () => void send(
 document.querySelector('#options')?.addEventListener('click', () => void chrome.runtime.openOptionsPage());
 document.querySelector('#copy')?.addEventListener('click', async () => {
   const turn = latestForTab(state, activeTabId, state.settings.captureMode);
-  if (!turn) return toast(t(state.settings.uiLanguage, 'toast.noRecord'));
+  if (!turn) return showFeedback('status.noRecord', 'amber');
   await navigator.clipboard.writeText(buildMarkdownReport({ ...state, turns: [turn] }, state.settings.uiLanguage));
-  toast(t(state.settings.uiLanguage, 'toast.summaryCopied'));
+  showFeedback('status.summaryCopied');
 });
 
 void (async () => {

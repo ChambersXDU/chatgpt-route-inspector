@@ -20,7 +20,6 @@ function render(next: InspectorState, syncControls = false): void {
   applyStaticTranslations(state.settings.uiLanguage);
   if (!syncControls) return;
   input<HTMLInputElement>('#auto').checked = state.settings.autoCaptureEnabled;
-  input<HTMLSelectElement>('#mode').value = state.settings.captureMode;
   input<HTMLInputElement>('#retention').value = String(state.settings.retentionLimit);
   input<HTMLSelectElement>('#ids').value = String(state.settings.includeRequestIdsInExport);
 }
@@ -33,12 +32,10 @@ bindLanguageSwitch(async (uiLanguage) => {
 
 input<HTMLButtonElement>('#save').addEventListener('click', async () => {
   const retentionLimit = Math.max(10, Math.min(500, Number(input<HTMLInputElement>('#retention').value) || 100));
-  const captureMode = input<HTMLSelectElement>('#mode').value === 'reload' ? 'reload' : 'live';
   const response = await send({
     type: 'route:update-settings',
     settings: {
       autoCaptureEnabled: input<HTMLInputElement>('#auto').checked,
-      captureMode,
       retentionLimit,
       includeRequestIdsInExport: input<HTMLSelectElement>('#ids').value === 'true'
     }

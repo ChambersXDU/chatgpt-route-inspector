@@ -29,7 +29,7 @@ async function expectPopupFits(page: Page): Promise<void> {
       '.popup-control-grid',
       '.popup-result-grid',
       '.button-stack',
-      '.privacy-note',
+      '.pow-readout',
       '.footer-link'
     ];
     const clipped = selectors.filter((selector) => {
@@ -88,6 +88,15 @@ test.beforeAll(async () => {
   ]);
   webSocketFrame = frame;
   server = createServer((request, response) => {
+    if (request.method === 'POST' && request.url === '/backend-api/sentinel/chat-requirements/prepare') {
+      response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+      response.end(JSON.stringify({
+        prepare_token: 'PRIVATE_PREPARE_TOKEN',
+        proofofwork: { required: true, seed: 'PRIVATE_POW_SEED', difficulty: '063556' },
+        turnstile: { dx: 'PRIVATE_TURNSTILE_PAYLOAD' }
+      }));
+      return;
+    }
     if (request.method === 'POST' && request.url === '/backend-api/f/conversation') {
       response.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-store' });
       response.end(responseBody);
@@ -136,6 +145,16 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   await languageSetup.locator('[data-language="zh"]').click();
   await expect(languageSetup.locator('html')).toHaveAttribute('lang', 'zh-CN');
   await expect(languageSetup.locator('.author-link')).toHaveAttribute('href', 'https://blog.liu-qi.cn/tools/');
+  const popupFontSizes = await languageSetup.locator('body').evaluate((body) => Array.from(body.querySelectorAll<HTMLElement>('*'))
+    .filter((element) => {
+      const style = getComputedStyle(element);
+      const box = element.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0;
+    })
+    .map((element) => getComputedStyle(element).fontSize)
+    .filter((value, index, values) => values.indexOf(value) === index)
+    .sort((left, right) => Number.parseFloat(left) - Number.parseFloat(right)));
+  expect(popupFontSizes).toEqual(['10px', '12px', '14px', '16px', '18px']);
   await languageSetup.close();
 
   const page = await context.newPage();
@@ -148,6 +167,13 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   const overlay = page.locator('#chatgpt-route-inspector-root');
   await expect(overlay).toHaveCount(1);
   await expect.poll(() => page.evaluate(() => window.fetch.name)).toBe('routeInspectorFetch');
+  await page.evaluate(async () => {
+    await window.fetch('/backend-api/sentinel/chat-requirements/prepare', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ p: 'PRIVATE_POW_FINGERPRINT' })
+    });
+  });
   await page.locator('#ask').click();
   await expect.poll(() => page.evaluate(() => [
     (window as Window & { __routeReceiverOne?: boolean }).__routeReceiverOne,
@@ -188,20 +214,86 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
     return live ? `${live.verdict}:${live.routeModel}:${live.modelLabel}:${live.sources?.join('+')}` : 'missing';
   }, storageKey)).toBe('mismatch:gpt-5-5-mini:gpt-5-6-pro:page_fetch+page_websocket');
 
+  await expect.poll(async () => worker.evaluate(async (key) => {
+    const state = (await chrome.storage.local.get(key))[key] as {
+      powReadings?: Array<{ rawHex?: string; decimal?: string; tabId?: number | null }>;
+    } | undefined;
+    const reading = state?.powReadings?.[0];
+    return reading ? `${reading.rawHex}:${reading.decimal}:${typeof reading.tabId}` : 'missing';
+  }, storageKey)).toBe('063556:406870:number');
+
   let stored = await worker.evaluate(async (key) => JSON.stringify((await chrome.storage.local.get(key))[key]), storageKey);
   expect(stored).toContain('gpt-5-6-pro');
   expect(stored).toContain('gpt-5-5-mini');
-  expect(stored).not.toMatch(/SECRET_PROMPT|SECRET_ANSWER|HANDOFF_SECRET|private\.pdf|confidence|effectiveModel/i);
+  expect(stored).not.toMatch(/SECRET_PROMPT|SECRET_ANSWER|HANDOFF_SECRET|PRIVATE_POW_SEED|PRIVATE_POW_FINGERPRINT|PRIVATE_PREPARE_TOKEN|PRIVATE_TURNSTILE_PAYLOAD|private\.pdf|confidence|effectiveModel/i);
 
   let overlayText = await overlay.evaluate((element) => element.shadowRoot?.textContent ?? '');
   expect(overlayText).toContain('检测到路由错配');
   expect(overlayText).toContain('resolved_model_slug');
+  expect(overlayText).toContain('PoW 难度');
+  expect(overlayText).toContain('063556（406870）');
+  const fullOverlayFontSizes = await overlay.evaluate((element) => Array.from(element.shadowRoot?.querySelectorAll<HTMLElement>('*') ?? [])
+    .filter((child) => {
+      const style = getComputedStyle(child);
+      const box = child.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0;
+    })
+    .map((child) => getComputedStyle(child).fontSize)
+    .filter((value, index, values) => values.indexOf(value) === index)
+    .sort((left, right) => Number.parseFloat(left) - Number.parseFloat(right)));
+  expect(fullOverlayFontSizes).toEqual(['10px', '12px', '14px', '16px']);
+
+  await overlay.locator('#minimize').click();
+  await expect.poll(async () => worker.evaluate(async (key) => {
+    const current = (await chrome.storage.local.get(key))[key] as {
+      settings?: { overlayMinimized?: boolean; captureMode?: string };
+    } | undefined;
+    return `${current?.settings?.overlayMinimized}:${current?.settings?.captureMode}`;
+  }, storageKey)).toBe('true:live');
+  overlayText = await overlay.evaluate((element) => element.shadowRoot?.textContent ?? '');
+  expect(overlayText).toContain('gpt-5-6-pro');
+  expect(overlayText).toContain('gpt-5-5-mini');
+  expect(overlayText).toContain('063556');
+  expect(overlayText).toContain('|');
+  expect(overlayText).toContain('406870');
+  expect(overlayText).not.toContain('诊断台');
+  expect(overlayText).not.toContain('隐藏浮窗');
+  const compactOverlayFontSizes = await overlay.evaluate((element) => Array.from(element.shadowRoot?.querySelectorAll<HTMLElement>('*') ?? [])
+    .filter((child) => {
+      const style = getComputedStyle(child);
+      const box = child.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0;
+    })
+    .map((child) => getComputedStyle(child).fontSize)
+    .filter((value, index, values) => values.indexOf(value) === index)
+    .sort((left, right) => Number.parseFloat(left) - Number.parseFloat(right)));
+  expect(compactOverlayFontSizes).toEqual(['10px', '12px', '14px', '16px']);
+  await page.screenshot({ path: path.join(root, 'output', 'playwright', 'overlay-compact-e2e.png'), fullPage: true });
+  await overlay.locator('#expand').click();
+  await expect.poll(async () => worker.evaluate(async (key) => {
+    const current = (await chrome.storage.local.get(key))[key] as {
+      settings?: { overlayMinimized?: boolean };
+    } | undefined;
+    return current?.settings?.overlayMinimized;
+  }, storageKey)).toBe(false);
 
   const untouchedTab = await context.newPage();
   await untouchedTab.goto('http://127.0.0.1:43996/');
-  const untouchedOverlay = await untouchedTab.locator('#chatgpt-route-inspector-root').evaluate((element) => element.shadowRoot?.textContent ?? '');
+  const untouchedOverlayHost = untouchedTab.locator('#chatgpt-route-inspector-root');
+  const untouchedOverlay = await untouchedOverlayHost.evaluate((element) => element.shadowRoot?.textContent ?? '');
   expect(untouchedOverlay).toContain('等待下一次回答');
   expect(untouchedOverlay).not.toContain('检测到路由错配');
+  await expect.poll(() => untouchedOverlayHost.evaluate((element) => {
+    const status = element.shadowRoot?.querySelector<HTMLElement>('.status');
+    if (!status) return null;
+    const style = getComputedStyle(status);
+    return {
+      fits: status.scrollWidth <= status.clientWidth,
+      singleLine: status.getBoundingClientRect().height <= Number.parseFloat(style.lineHeight) * 1.1,
+      textAlign: style.textAlign,
+      whiteSpace: style.whiteSpace
+    };
+  })).toEqual({ fits: true, singleLine: true, textAlign: 'right', whiteSpace: 'nowrap' });
 
   await overlay.locator('#mode-reload').click();
   await expect.poll(async () => worker.evaluate(async (key) => {
@@ -210,6 +302,17 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   }, storageKey)).toBe('reload');
   await expect.poll(async () => overlay.evaluate((element) => element.shadowRoot?.textContent ?? ''))
     .toContain('等待刷新会话');
+  await expect.poll(() => overlay.evaluate((element) => {
+    const hint = element.shadowRoot?.querySelector<HTMLElement>('.hint');
+    if (!hint) return null;
+    const style = getComputedStyle(hint);
+    return {
+      fits: hint.scrollWidth <= hint.clientWidth,
+      singleLine: hint.getBoundingClientRect().height <= Number.parseFloat(style.lineHeight) * 1.1,
+      text: hint.textContent,
+      whiteSpace: style.whiteSpace
+    };
+  })).toEqual({ fits: true, singleLine: true, text: '刷新当前会话，读取响应路由。', whiteSpace: 'nowrap' });
 
   const domFallbackTab = await context.newPage();
   await domFallbackTab.goto('http://127.0.0.1:43996/c/dom-only-conversation');
@@ -267,19 +370,83 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   expect(counts.reload).toBeGreaterThan(0);
 
   const dashboard = await context.newPage();
+  await dashboard.setViewportSize({ width: 2048, height: 1200 });
   await dashboard.goto(`chrome-extension://${extensionId}/ui/dashboard/index.html`);
   await expect(dashboard.getByText('路由诊断台')).toBeVisible();
   await expect(dashboard.getByText('实时请求').first()).toBeVisible();
   await expect(dashboard.getByText('会话重载').first()).toBeVisible();
   await expect(dashboard.getByText('GPT 5.6 Pro').first()).toBeVisible();
+  await expect.poll(() => dashboard.evaluate(() => {
+    const left = document.querySelector<HTMLElement>('.dashboard-grid > .column');
+    const right = document.querySelector<HTMLElement>('.dashboard-grid > aside');
+    const scroller = document.querySelector<HTMLElement>('.table-scroll');
+    if (!left || !right || !scroller) return null;
+    const leftBox = left.getBoundingClientRect();
+    const rightBox = right.getBoundingClientRect();
+    const scrollerBox = scroller.getBoundingClientRect();
+    const shellBox = document.querySelector<HTMLElement>('.dashboard-shell')?.getBoundingClientRect();
+    return {
+      columnsSeparated: leftBox.right <= rightBox.left,
+      scrollerContained: scrollerBox.right <= rightBox.left,
+      overflowX: getComputedStyle(scroller).overflowX,
+      pageOverflow: document.documentElement.scrollWidth > window.innerWidth,
+      shellWidth: Math.round(shellBox?.width ?? 0)
+    };
+  })).toEqual({ columnsSeparated: true, scrollerContained: true, overflowX: 'auto', pageOverflow: false, shellWidth: 1600 });
+  await expect(dashboard.locator('#detail .notice')).toHaveCount(0);
+  await expect(dashboard.getByText('工具名称', { exact: true })).toHaveCount(0);
   await dashboard.screenshot({ path: path.join(root, 'output', 'playwright', 'dashboard-e2e.png'), fullPage: true });
 
   const popup = await context.newPage();
   await popup.setViewportSize({ width: 640, height: 600 });
   await popup.goto(`chrome-extension://${extensionId}/ui/popup/index.html`);
+  await expect(popup.locator('.route-model strong')).toHaveText(['—', '—']);
+  await expect(popup.locator('#pow-hex')).toHaveText('未捕获');
+  await expect(popup.getByText('GPT 5.6 Pro')).toHaveCount(0);
+
+  // A real action popup reads the underlying active tab. This test page is an ordinary
+  // extension tab, so bring the ChatGPT fixture back to the foreground before reloading it.
+  await page.bringToFront();
+  await popup.reload();
   await expect(popup.getByText('已读取响应路由')).toBeVisible();
   await expect(popup.getByText('重载不提供')).toBeVisible();
   await expect(popup.getByText('会话重载').first()).toBeVisible();
+  await expect(popup.locator('#pow-hex')).toHaveText('063556');
+  await expect(popup.locator('#pow-decimal')).toHaveText('406870');
+  await expect(popup.locator('#footer-machine')).toBeVisible();
+  await expect(popup.locator('.toast')).toHaveCount(0);
+  await expect(popup.locator('#mode-hint')).toHaveText('刷新当前会话，读取响应路由。');
+  await expect.poll(() => popup.locator('#mode-hint').evaluate((hint) => {
+    const style = getComputedStyle(hint);
+    return {
+      fits: hint.scrollWidth <= hint.clientWidth,
+      singleLine: hint.getBoundingClientRect().height <= Number.parseFloat(style.lineHeight) * 1.1,
+      whiteSpace: style.whiteSpace
+    };
+  })).toEqual({ fits: true, singleLine: true, whiteSpace: 'nowrap' });
+  const secondaryButtonStyles = await popup.evaluate(() => {
+    const copy = getComputedStyle(document.querySelector<HTMLElement>('#copy')!);
+    const options = getComputedStyle(document.querySelector<HTMLElement>('#options')!);
+    return {
+      copy: [copy.backgroundColor, copy.borderColor, copy.color],
+      options: [options.backgroundColor, options.borderColor, options.color]
+    };
+  });
+  expect(secondaryButtonStyles.options).toEqual(secondaryButtonStyles.copy);
+  await expect(popup.getByText('本地 / 自动')).toHaveCount(0);
+  await expect.poll(() => popup.evaluate(() => {
+    const buttons = document.querySelector<HTMLElement>('.button-stack')!.getBoundingClientRect();
+    const pow = document.querySelector<HTMLElement>('.pow-readout')!.getBoundingClientRect();
+    const footer = document.querySelector<HTMLElement>('.footer-link')!.getBoundingClientRect();
+    const status = document.querySelector<HTMLElement>('#footer-machine')!.getBoundingClientRect();
+    const records = document.querySelector<HTMLElement>('#record-count')!.getBoundingClientRect();
+    return {
+      footerAtBottom: Math.abs(window.innerHeight - footer.bottom) <= 1,
+      powCenteredInGap: Math.abs((pow.top - buttons.bottom) - (footer.top - pow.bottom)) <= 1,
+      recordsAtRight: Math.abs(records.right - (window.innerWidth - 17)) <= 1,
+      statusAtLeft: Math.abs(status.left - 17) <= 1
+    };
+  })).toEqual({ footerAtBottom: true, powCenteredInGap: true, recordsAtRight: true, statusAtLeft: true });
   await expectPopupFits(popup);
   await overlay.locator('#hide').click();
   await expect(overlay).toHaveCount(0);
@@ -287,6 +454,12 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   await popup.locator('#overlay-show').click();
   await expect(overlay).toHaveCount(1);
   await expect(popup.locator('#overlay-show')).toHaveClass(/active/);
+  await expect.poll(async () => worker.evaluate(async (key) => {
+    const current = (await chrome.storage.local.get(key))[key] as {
+      settings?: { overlayEnabled?: boolean; overlayMinimized?: boolean };
+    } | undefined;
+    return `${current?.settings?.overlayEnabled}:${current?.settings?.overlayMinimized}`;
+  }, storageKey)).toBe('true:false');
   await popup.screenshot({ path: path.join(root, 'output', 'playwright', 'popup-e2e.png'), fullPage: true });
 
   await page.evaluate(() => {
@@ -323,6 +496,43 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   stored = await worker.evaluate(async (key) => JSON.stringify((await chrome.storage.local.get(key))[key]), storageKey);
   expect(stored).not.toContain('PRIVATE_SPA_ASSISTANT_TEXT');
 
+  const reloadOverlayRouteGeometry = await overlay.evaluate((element) => {
+    const route = element.shadowRoot?.querySelector<HTMLElement>('.route');
+    const values = [...(element.shadowRoot?.querySelectorAll<HTMLElement>('.model b') ?? [])];
+    return {
+      routeHeight: route?.getBoundingClientRect().height ?? 0,
+      valueHeights: values.map((value) => value.getBoundingClientRect().height)
+    };
+  });
+  const reloadPopupGeometry = await popup.evaluate(() => ({
+    resultHeight: document.querySelector<HTMLElement>('.popup-result-grid')?.getBoundingClientRect().height ?? 0,
+    heroHeight: document.querySelector<HTMLElement>('.hero-readout')?.getBoundingClientRect().height ?? 0,
+    lockupHeight: document.querySelector<HTMLElement>('.route-lockup')?.getBoundingClientRect().height ?? 0,
+    valueHeights: [...document.querySelectorAll<HTMLElement>('.route-model strong')].map((value) => value.getBoundingClientRect().height)
+  }));
+  await popup.locator('#mode-live').click();
+  await expect(popup.locator('#mode-live')).toHaveClass(/active/);
+  const liveOverlayRouteGeometry = await overlay.evaluate((element) => {
+    const route = element.shadowRoot?.querySelector<HTMLElement>('.route');
+    const values = [...(element.shadowRoot?.querySelectorAll<HTMLElement>('.model b') ?? [])];
+    return {
+      routeHeight: route?.getBoundingClientRect().height ?? 0,
+      valueHeights: values.map((value) => value.getBoundingClientRect().height)
+    };
+  });
+  const livePopupGeometry = await popup.evaluate(() => ({
+    resultHeight: document.querySelector<HTMLElement>('.popup-result-grid')?.getBoundingClientRect().height ?? 0,
+    heroHeight: document.querySelector<HTMLElement>('.hero-readout')?.getBoundingClientRect().height ?? 0,
+    lockupHeight: document.querySelector<HTMLElement>('.route-lockup')?.getBoundingClientRect().height ?? 0,
+    valueHeights: [...document.querySelectorAll<HTMLElement>('.route-model strong')].map((value) => value.getBoundingClientRect().height)
+  }));
+  expect(liveOverlayRouteGeometry).toEqual(reloadOverlayRouteGeometry);
+  expect(reloadOverlayRouteGeometry).toEqual({ routeHeight: 64, valueHeights: [18, 18] });
+  expect(livePopupGeometry).toEqual(reloadPopupGeometry);
+  expect(reloadPopupGeometry).toEqual({ resultHeight: 156, heroHeight: 156, lockupHeight: 37, valueHeights: [21, 21] });
+  await popup.locator('#mode-reload').click();
+  await expect(popup.locator('#mode-reload')).toHaveClass(/active/);
+
   await popup.locator('[data-language="en"]').click();
   await expect(popup.locator('html')).toHaveAttribute('lang', 'en');
   await expect(popup.getByText('Model label only')).toBeVisible();
@@ -332,14 +542,36 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   await expectPopupFits(popup);
 
   await popup.locator('#mode-live').click();
+  await expect(popup.locator('#footer-status')).toHaveText('Switched: Live request');
   await expect(popup.getByText('Route mismatch')).toBeVisible();
-  await expect(popup.getByText('page_fetch+page_websocket')).toBeVisible();
+  const adapterValue = popup.getByText('page_fetch+page_websocket');
+  await expect(adapterValue).toBeVisible();
+  await expect.poll(() => adapterValue.evaluate((element) => ({
+    singleLine: element.getBoundingClientRect().height <= Number.parseFloat(getComputedStyle(element).lineHeight) * 1.1,
+    fullyVisible: element.scrollWidth <= element.clientWidth
+  }))).toEqual({ singleLine: true, fullyVisible: true });
   await expectPopupFits(popup);
 
   const options = await context.newPage();
+  await options.setViewportSize({ width: 1600, height: 900 });
   await options.goto(`chrome-extension://${extensionId}/ui/options/index.html`);
   await expect(options.getByText('Settings & privacy').first()).toBeVisible();
+  await expect(options.getByText('Configuration', { exact: true })).toHaveCount(0);
+  await expect(options.locator('#mode')).toHaveCount(0);
+  await expect(options.getByText('Automatic capture', { exact: true })).toBeVisible();
+  await expect(options.getByText('Route records stay on this device. Request IDs are redacted by default when exported.', { exact: true })).toBeVisible();
   await expect(options.locator('.author-link')).toHaveAttribute('href', 'https://blog.liu-qi.cn/tools/');
+  await expect.poll(() => options.evaluate(() => ({
+    shellWidth: Math.round(document.querySelector<HTMLElement>('.options-shell')?.getBoundingClientRect().width ?? 0),
+    pageOverflow: document.documentElement.scrollWidth > window.innerWidth
+  }))).toEqual({ shellWidth: 1040, pageOverflow: false });
+  await options.locator('[data-language="zh"]').click();
+  await expect(options.locator('html')).toHaveAttribute('lang', 'zh-CN');
+  await expect(options.getByText('设置与隐私', { exact: true })).toBeVisible();
+  await expect(options.getByText('配置', { exact: true })).toHaveCount(0);
+  await expect(options.locator('#mode')).toHaveCount(0);
+  await options.locator('[data-language="en"]').click();
+  await expect(options.locator('html')).toHaveAttribute('lang', 'en');
 
   const onboarding = await context.newPage();
   await onboarding.goto(`chrome-extension://${extensionId}/ui/onboarding/index.html`);

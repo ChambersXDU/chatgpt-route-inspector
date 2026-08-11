@@ -113,11 +113,43 @@ data-message-model-slug="gpt-…"
 
 扩展里的“会话重载”开关优先解析本次刷新产生的会话 JSON；网络记录尚未捕获时，DOM 标签扫描可先提供标签级兜底，网络记录随后到达时当前结果以网络证据为准。会话 JSON 存在 `current_node` 时，扩展只读取它所在的活动回答分支。同标签页切换会话后，记录按 URL 中的会话 ID 隔离。Network 中即使还能看到 `resolved_model_slug`，也可能是开启 **Preserve log** 后保留的先前实时 POST 响应；重载模式有意不把实时请求记录混进来。
 
+## 查看 PoW difficulty
+
+1. 在 Network 过滤框输入 `chat-requirements`。
+2. 发送消息前后，找到以下任一请求；优先检查带 `/prepare` 的当前链路，不要选择 `/finalize`：
+
+```text
+POST /backend-api/sentinel/chat-requirements/prepare
+POST /backend-anon/sentinel/chat-requirements/prepare
+POST /backend-api/sentinel/chat-requirements
+POST /backend-anon/sentinel/chat-requirements
+```
+
+3. 在 Response 中搜索：
+
+```text
+proofofwork
+difficulty
+```
+
+部分前端版本可能使用 `proof_of_work` 或 `pow`，也可能把结果包在 `chat_requirements` 或 `requirements` 对象中。真正要显示的是 PoW 对象内的 `difficulty` 字符串，例如 `063556`。
+
+扩展原样保留这个十六进制字符串，并使用任意精度整数换算十进制。换算时可去掉可选的 `0x` 前缀；前导零不会改变数值，不需要从原始显示中删除。Chrome Console 可用下面的只读表达式交叉核验：
+
+```js
+BigInt(`0x${'063556'.replace(/^0x/i, '')}`).toString(10)
+// "406870"
+```
+
+扩展不会读取或保存同一响应中的 seed、设备指纹、nonce、proof token、requirements token 或 Turnstile 数据，也不会自行求解 PoW。PoW 的数值与位数建议不参与路由正常、错配或冲突判定。
+
 ## 控制页面浮窗
 
-- 页面浮窗中的“隐藏浮窗”会将浮窗节点彻底移除，不留下缩小挂边。
+- 完整浮窗右上角的“—”会切换为精简态；精简态只显示实时请求模型、响应路由和 PoW。
+- 点击精简浮窗任意位置即可恢复完整态，精简态不额外显示放大按钮。
+- 完整浮窗中的“隐藏浮窗”会将浮窗节点彻底移除，不留下缩小挂边。
 - 点击 Chrome 工具栏中的扩展图标，在 Popup 里用“显示浮窗 / 隐藏浮窗”成对按钮控制。
-- 隐藏后必须从 Popup 点“显示浮窗”才能恢复。
+- 隐藏后必须从 Popup 点“显示浮窗”才能恢复，并直接恢复为完整态。
 
 ## 判断规则
 

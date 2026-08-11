@@ -1,8 +1,8 @@
 {
   "extensionName": {
-    "message": "ChatGPT Route Inspector"
+    "message": "ChatGPT Model Route Inspector - Resolved Models & GPT Pro Downgrades"
   },
   "extensionDescription": {
-    "message": "Compare ChatGPT's requested model with server-reported routing metadata without storing chat content."
+    "message": "See which model actually answered in ChatGPT, detect whether GPT Pro was downgraded, and view the PoW difficulty."
   }
 }

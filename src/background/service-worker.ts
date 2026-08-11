@@ -1,7 +1,7 @@
-import { defaultState, mutateState, readState, storeObservation } from './storage';
+import { defaultState, mutateState, readState, storeObservation, storePowObservation } from './storage';
 import { normalizeUiLanguage } from '../core/language';
 import { normalizeObservation } from '../core/observation';
-import type { InspectorState, RouteObservation } from '../core/types';
+import type { InspectorState, PowObservation, RouteObservation } from '../core/types';
 import type { RuntimeRequest, RuntimeResponse } from '../shared/messages';
 
 const allowedOrigins = new Set(__ROUTE_INSPECTOR_ALLOWED_ORIGINS__);
@@ -53,6 +53,12 @@ async function acceptObservation(observation: RouteObservation): Promise<Inspect
   return state;
 }
 
+async function acceptPowObservation(observation: PowObservation): Promise<InspectorState> {
+  const state = await storePowObservation(observation);
+  await broadcast(state);
+  return state;
+}
+
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') void chrome.tabs.create({ url: chrome.runtime.getURL('ui/onboarding/index.html') });
 });
@@ -65,6 +71,12 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, sendResponse: (respo
         ? request.observation
         : { ...request.observation, tabId: sender.tab.id };
       return { ok: true, state: await acceptObservation(observation) };
+    }
+    if (request.type === 'pow:observation') {
+      const observation: PowObservation = sender.tab?.id === undefined
+        ? request.observation
+        : { ...request.observation, tabId: sender.tab.id };
+      return { ok: true, state: await acceptPowObservation(observation) };
     }
     if (request.type === 'route:get-state') {
       const state = await readState();

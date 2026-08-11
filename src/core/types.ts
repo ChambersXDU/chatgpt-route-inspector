@@ -76,6 +76,7 @@ export interface RouteTurn extends RouteFields, RouteAssessment {
 
 export interface InspectorSettings {
   overlayEnabled: boolean;
+  overlayMinimized: boolean;
   retentionLimit: number;
   includeRequestIdsInExport: boolean;
   autoCaptureEnabled: boolean;
@@ -83,8 +84,22 @@ export interface InspectorSettings {
   uiLanguage: UiLanguage;
 }
 
+export interface PowObservation {
+  rawHex: string;
+  observedAt: string;
+  tabId?: number;
+}
+
+export interface PowReading {
+  rawHex: string;
+  decimal: string;
+  observedAt: string;
+  tabId: number | null;
+}
+
 export interface InspectorState {
   turns: RouteTurn[];
+  powReadings: PowReading[];
   settings: InspectorSettings;
   parserHealth: {
     lastSuccessAt: string | null;
@@ -115,6 +130,7 @@ export const EMPTY_ROUTE_FIELDS: RouteFields = {
 
 export const DEFAULT_SETTINGS: InspectorSettings = {
   overlayEnabled: true,
+  overlayMinimized: false,
   retentionLimit: 100,
   includeRequestIdsInExport: false,
   autoCaptureEnabled: true,

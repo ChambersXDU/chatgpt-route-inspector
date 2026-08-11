@@ -25,7 +25,7 @@ describe('privacy exports', () => {
 
   it('produces a readable report', () => {
     const state = {
-      turns: [turn], settings: { ...DEFAULT_SETTINGS },
+      turns: [turn], powReadings: [], settings: { ...DEFAULT_SETTINGS },
       parserHealth: { lastSuccessAt: turn.observedAt, lastFailureAt: null, consecutiveFailures: 0 }
     };
     const english = buildMarkdownReport(state, 'en');

@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "ChatGPT 모델 라우팅 검사기 - 실제 응답 모델 및 GPT Pro 다운그레이드 감지"
+  },
+  "extensionDescription": {
+    "message": "ChatGPT에서 실제로 응답한 모델을 확인하고, GPT Pro 다운그레이드를 감지하며, PoW 난이도를 표시합니다."
+  }
+}

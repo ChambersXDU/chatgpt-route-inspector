@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "ChatGPT-Routenprüfer - Antwortmodell & GPT-Pro-Downgrade erkennen"
+  },
+  "extensionDescription": {
+    "message": "Zeigt das tatsächlich antwortende ChatGPT-Modell, erkennt GPT-Pro-Downgrades und zeigt die PoW-Schwierigkeit an."
+  }
+}

@@ -1,6 +1,7 @@
-import { DEFAULT_SETTINGS, type InspectorState, type RouteObservation } from '../core/types';
+import { DEFAULT_SETTINGS, type InspectorState, type PowObservation, type RouteObservation } from '../core/types';
 import { browserUiLanguage, normalizeUiLanguage } from '../core/language';
 import { migrateStoredTurn } from '../core/migration';
+import { normalizePowObservation, upsertPowReading } from '../core/pow';
 import { upsertTurn } from '../core/turns';
 
 const STORAGE_KEY = 'chatgptRouteInspectorStateV1';
@@ -9,6 +10,7 @@ let queue = Promise.resolve();
 export function defaultState(): InspectorState {
   return {
     turns: [],
+    powReadings: [],
     settings: { ...DEFAULT_SETTINGS, uiLanguage: browserUiLanguage() },
     parserHealth: { lastSuccessAt: null, lastFailureAt: null, consecutiveFailures: 0 }
   };
@@ -21,13 +23,26 @@ export async function readState(): Promise<InspectorState> {
   const turns = Array.isArray(candidate.turns)
     ? candidate.turns.map(migrateStoredTurn).filter((turn): turn is NonNullable<typeof turn> => turn !== null)
     : [];
+  const powReadings = Array.isArray(candidate.powReadings)
+    ? candidate.powReadings
+      .map(normalizePowObservation)
+      .filter((reading): reading is NonNullable<typeof reading> => reading !== null)
+    : [];
   const captureMode = candidate.settings?.captureMode === 'reload' ? 'reload' : 'live';
   const uiLanguage = normalizeUiLanguage(candidate.settings?.uiLanguage) ?? browserUiLanguage();
   return {
     turns,
+    powReadings,
     settings: { ...DEFAULT_SETTINGS, ...candidate.settings, captureMode, uiLanguage },
     parserHealth: candidate.parserHealth ?? { lastSuccessAt: null, lastFailureAt: null, consecutiveFailures: 0 }
   };
+}
+
+export function storePowObservation(observation: PowObservation): Promise<InspectorState> {
+  return mutateState((state) => ({
+    ...state,
+    powReadings: upsertPowReading(state.powReadings, observation)
+  }));
 }
 
 export function mutateState(mutator: (state: InspectorState) => InspectorState | Promise<InspectorState>): Promise<InspectorState> {

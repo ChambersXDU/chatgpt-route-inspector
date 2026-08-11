@@ -1,0 +1,8 @@
+{
+  "extensionName": {
+    "message": "ChatGPT रूट इंस्पेक्टर - वास्तविक मॉडल और GPT Pro डाउनग्रेड पहचान"
+  },
+  "extensionDescription": {
+    "message": "देखें कि ChatGPT में वास्तव में किस मॉडल ने उत्तर दिया, GPT Pro डाउनग्रेड का पता लगाएँ और PoW कठिनाई देखें।"
+  }
+}

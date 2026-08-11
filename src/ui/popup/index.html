@@ -50,12 +50,20 @@
     <div class="button-stack">
       <button class="button primary" id="dashboard" data-i18n="button.openDashboard">打开诊断台</button>
       <button class="button" id="copy" data-i18n="button.copySummary">复制本轮摘要</button>
-      <button class="button quiet wide" id="options" data-i18n="button.options">设置与隐私</button>
+      <button class="button wide" id="options" data-i18n="button.options">设置与隐私</button>
     </div>
-    <div class="privacy-note"><strong data-i18n="privacy.local">本地解析</strong>　<span data-i18n="privacy.popup">不保存提示词和回答正文；扩展只保留路由白名单字段。</span></div>
+    <section class="pow-readout" aria-live="polite">
+      <strong data-i18n="pow.inline">PoW 难度</strong>
+      <span data-i18n="pow.hex">十六进制</span><code id="pow-hex">未捕获</code>
+      <i>|</i>
+      <span data-i18n="pow.decimal">十进制</span><code id="pow-decimal">—</code>
+      <small data-i18n="pow.recommendation">（建议保持十进制五位数以上）</small>
+    </section>
   </main>
-  <footer class="footer-link"><span data-i18n="footer.localAuto">本地 / 自动</span><span id="record-count">0 条记录</span></footer>
-  <div class="toast" id="toast"></div>
+  <footer class="footer-link">
+    <span id="footer-machine" class="footer-machine" data-tone="idle"><i></i><span id="footer-status" data-i18n="status.idle">待机</span></span>
+    <span id="record-count">0 条记录</span>
+  </footer>
   <script src="index.js"></script>
 </body>
 </html>

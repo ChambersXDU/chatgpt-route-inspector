@@ -1,7 +1,6 @@
 import { buildMarkdownReport, sanitizedExport } from '../../core/privacy';
 import type { CaptureMode, InspectorState, RouteTurn, RouteVerdict, UiLanguage } from '../../core/types';
 import {
-  assessmentReasons,
   captureModeLabel,
   escapeHtml,
   formatDuration,
@@ -71,17 +70,13 @@ function renderDetail(turn: RouteTurn | null, language: UiLanguage): void {
     ['detail.planType', turn.planType],
     ['detail.thinkingEffort', turn.thinkingEffort],
     ['detail.fastConvo', turn.fastConvo],
-    ['detail.toolInvoked', turn.toolInvoked],
-    ['detail.toolName', turn.toolName],
-    ['detail.search', turn.isSearch],
-    ['detail.promptImage', turn.hadImage],
     ['detail.requestId', turn.requestId],
     ['detail.networkId', turn.networkRequestId],
     ['detail.duration', formatDuration(turn.durationMs)],
     ['detail.adapters', turn.sources.join(' + ')]
   ];
-  const reasons = assessmentReasons(turn, language);
-  detail.innerHTML = `<div class="evidence-list">${items.map(([label, value]) => `<div class="evidence"><small>${escapeHtml(t(language, label))}</small><code>${escapeHtml(value)}</code></div>`).join('')}</div><div class="notice" style="margin-top:14px">${reasons.map((reason) => `• ${escapeHtml(reason)}`).join('<br>')}</div>`;
+  const availableItems = items.filter(([, value]) => value !== null && value !== '');
+  detail.innerHTML = `<div class="evidence-list">${availableItems.map(([label, value]) => `<div class="evidence"><small>${escapeHtml(t(language, label))}</small><code>${escapeHtml(value)}</code></div>`).join('')}</div>`;
 }
 
 function render(next: InspectorState): void {
@@ -109,7 +104,7 @@ function render(next: InspectorState): void {
   if (rows) rows.innerHTML = visible.map((turn) => `<tr data-id="${escapeHtml(turn.captureId)}" class="${selectedId === turn.captureId ? 'selected' : ''}"><td class="mono">${escapeHtml(formatTime(turn.observedAt, language))}</td><td><span class="tag ${turn.captureMode === 'live' ? 'signal' : 'amber'}">${escapeHtml(captureModeLabel(turn.captureMode, language))}</span></td><td>${escapeHtml(requestedModelLabel(turn, language))}</td><td>${escapeHtml(recordedModelLabel(turn, language))}</td><td>${escapeHtml(turn.verdict === 'conflict' ? t(language, 'result.routeConflict') : turn.routeModel ? modelLabel(turn.routeModel, language) : t(language, 'value.unavailable'))}</td><td><span class="tag ${verdictTone(turn.verdict)}">${escapeHtml(turnResultLabel(turn, language))}</span></td><td class="mono muted">${escapeHtml(routeSourcesLabel(turn, language))}</td></tr>`).join('');
   if (empty) empty.style.display = visible.length ? 'none' : 'block';
   renderDetail(selectedTurn(visible), language);
-  document.querySelector<HTMLElement>('#health')!.innerHTML = `<div class="timeline"><div class="timeline-item signal"><strong>${escapeHtml(t(language, 'health.lastSuccess'))}</strong><p>${escapeHtml(formatTime(state.parserHealth.lastSuccessAt, language))}</p></div><div class="timeline-item ${state.parserHealth.consecutiveFailures ? 'danger' : ''}"><strong>${escapeHtml(t(language, 'health.lastFailure'))}</strong><p>${escapeHtml(formatTime(state.parserHealth.lastFailureAt, language))} · ${escapeHtml(t(language, 'health.failures', { count: state.parserHealth.consecutiveFailures }))}</p></div><div class="timeline-item"><strong>${escapeHtml(t(language, 'health.activeMode'))}</strong><p>${escapeHtml(captureModeLabel(state.settings.captureMode, language))}</p></div><div class="timeline-item"><strong>${escapeHtml(t(language, 'health.privacyBoundary'))}</strong><p>${escapeHtml(t(language, 'health.privacyCopy'))}</p></div></div>`;
+  document.querySelector<HTMLElement>('#health')!.innerHTML = `<div class="timeline"><div class="timeline-item signal"><strong>${escapeHtml(t(language, 'health.lastSuccess'))}</strong><p>${escapeHtml(formatTime(state.parserHealth.lastSuccessAt, language))}</p></div><div class="timeline-item ${state.parserHealth.consecutiveFailures ? 'danger' : ''}"><strong>${escapeHtml(t(language, 'health.lastFailure'))}</strong><p>${escapeHtml(formatTime(state.parserHealth.lastFailureAt, language))} · ${escapeHtml(t(language, 'health.failures', { count: state.parserHealth.consecutiveFailures }))}</p></div><div class="timeline-item"><strong>${escapeHtml(t(language, 'health.activeMode'))}</strong><p>${escapeHtml(captureModeLabel(state.settings.captureMode, language))}</p></div></div>`;
   document.querySelectorAll<HTMLElement>('[data-filter]').forEach((button) => button.addEventListener('click', () => { filter = button.dataset.filter as RouteVerdict | 'all'; render(state); }));
   document.querySelectorAll<HTMLElement>('[data-mode-filter]').forEach((button) => button.addEventListener('click', () => { modeFilter = button.dataset.modeFilter as CaptureMode | 'all'; render(state); }));
   document.querySelectorAll<HTMLElement>('[data-id]').forEach((row) => row.addEventListener('click', () => { selectedId = row.dataset.id ?? null; render(state); }));

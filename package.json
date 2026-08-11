@@ -1,6 +1,6 @@
 {
   "name": "chatgpt-route-inspector",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Privacy-first Chromium extension that reports ChatGPT requested and server-reported resolved models.",
   "type": "module",
