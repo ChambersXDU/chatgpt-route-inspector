@@ -152,6 +152,10 @@ npm run package
 
 发布包与 SHA-256 校验文件输出到 `release/`。
 
+## 友情链接
+
+- [LINUX DO](https://linux.do/) — 新的理想型社区
+
 ## 免责声明
 
 本项目不隶属于 OpenAI，也未获得 OpenAI 官方认可。ChatGPT、OpenAI 及相关标识是其各自权利人的商标。扩展仅展示 ChatGPT 网页请求与响应中可读取的信息，不构成对 OpenAI 内部基础设施、计费系统或账号状态的官方证明。
