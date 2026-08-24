@@ -44,7 +44,7 @@ The following example shows a request for `GPT 5.6 Pro` with a response route of
 
 - **Live request inspection**: shows the requested model and response route for a newly sent message.
 - **Conversation reload inspection**: reloads an existing conversation and reads available response-route information from completed answers.
-- **Page overlay**: displays results inside ChatGPT with full, compact, and hidden states.
+- **Page overlay**: displays results inside ChatGPT with full, compact, mini, edge-stowed, and hidden states.
 - **Route diagnostics**: reviews locally stored records and evidence, with Markdown and JSON export.
 - **PoW difficulty display**: shows the original hexadecimal value and its decimal conversion.
 - **Chinese and English UI**: supports both languages across the Popup, overlay, diagnostics, settings, and reports.
@@ -58,7 +58,7 @@ The following example shows a request for `GPT 5.6 Pro` with a response route of
 
 ### Install a release package manually
 
-1. Download and extract [`chatgpt-route-inspector-1.0.2.zip`](https://github.com/Liu-Bot24/chatgpt-route-inspector/releases/download/v1.0.2/chatgpt-route-inspector-1.0.2.zip).
+1. Download and extract [`chatgpt-route-inspector-1.0.3.zip`](https://github.com/Liu-Bot24/chatgpt-route-inspector/releases/download/v1.0.3/chatgpt-route-inspector-1.0.3.zip).
 2. Open `chrome://extensions/`.
 3. Enable **Developer mode**.
 4. Click **Load unpacked**.
@@ -87,14 +87,17 @@ The unpacked extension is written to `dist/extension`. Open `chrome://extensions
 
 ### Review an existing answer
 
-1. Select **Conversation reload** in the Popup.
+1. Select **Reload session** in the Popup.
 2. Reload the current ChatGPT conversation.
 3. Review the response-route information available for that conversation.
 
 ### Manage the page overlay
 
-- Click the minimize button in the upper-right corner to switch from the full overlay to its compact state.
-- Click anywhere on the compact overlay to restore the full view.
+- Select **Compact mode** in the upper-right corner to show the requested model, response route, and PoW difficulty.
+- Select **Mini mode** to dock the overlay to the right edge with only the response route value and decimal PoW value.
+- Click the compact overlay to restore the full view.
+- In the mini overlay, click the narrow left edge to stow it at the right side of the window; click the remaining content area to restore the full view.
+- Click the narrow edge left behind after stowing to restore the mini overlay.
 - Select **Hide overlay** to remove it from the page completely.
 - To restore a hidden overlay, select **Show overlay** in the extension Popup.
 

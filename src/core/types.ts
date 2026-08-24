@@ -4,6 +4,7 @@ export const ROUTE_SCHEMA_VERSION = '1.4.0' as const;
 export type CaptureSource = 'page_fetch' | 'page_websocket' | 'conversation_record' | 'assistant_dom';
 export type CaptureMode = 'live' | 'reload';
 export type UiLanguage = 'zh' | 'en';
+export type OverlayMode = 'full' | 'compact' | 'mini' | 'docked';
 export type CapturePhase = 'requested' | 'responding' | 'completed' | 'failed';
 export type RouteVerdict = 'normal' | 'mismatch' | 'conflict' | 'unknown';
 export type RouteModelSource =
@@ -12,6 +13,11 @@ export type RouteModelSource =
 export type ModelLabelSource =
   | 'assistant.metadata.model_slug'
   | 'assistant[data-message-model-slug]';
+
+export function normalizeOverlayMode(value: unknown, legacyMinimized = false): OverlayMode {
+  if (value === 'full' || value === 'compact' || value === 'mini' || value === 'docked') return value;
+  return legacyMinimized ? 'compact' : 'full';
+}
 
 export interface RouteFields {
   requestedModel: string | null;
@@ -76,6 +82,8 @@ export interface RouteTurn extends RouteFields, RouteAssessment {
 
 export interface InspectorSettings {
   overlayEnabled: boolean;
+  overlayMode: OverlayMode;
+  /** Kept in storage for compatibility with releases that only knew two overlay states. */
   overlayMinimized: boolean;
   retentionLimit: number;
   includeRequestIdsInExport: boolean;
@@ -130,6 +138,7 @@ export const EMPTY_ROUTE_FIELDS: RouteFields = {
 
 export const DEFAULT_SETTINGS: InspectorSettings = {
   overlayEnabled: true,
+  overlayMode: 'full',
   overlayMinimized: false,
   retentionLimit: 100,
   includeRequestIdsInExport: false,

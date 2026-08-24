@@ -20,7 +20,7 @@ describe('UI translations', () => {
     expect(turnResultLabel(mismatch, 'zh')).toBe('路由错配');
     expect(turnResultLabel(mismatch, 'en')).toBe('Route mismatch');
     expect(captureModeLabel('reload', 'zh')).toBe('会话重载');
-    expect(captureModeLabel('reload', 'en')).toBe('Conversation reload');
+    expect(captureModeLabel('reload', 'en')).toBe('Reload session');
   });
 
   it('localizes reconstructed evidence reasons while preserving exact model fields', () => {
@@ -38,6 +38,36 @@ describe('UI translations', () => {
     expect(t('en', 'footer.records', { count: 3 })).toBe('3 RECORDS');
     expect(t('zh', 'app.author')).toBe('Created by @liuqi');
     expect(t('en', 'app.author')).toBe('Created by @liuqi');
+  });
+
+  it('keeps English overlay status and guidance copy compact', () => {
+    const statusKeys = [
+      'result.waitingNext',
+      'result.waitingReload',
+      'result.capturing',
+      'result.normal',
+      'result.mismatchDetected',
+      'result.actualRouteConflict',
+      'result.routeRead',
+      'result.labelOnly',
+      'result.routeMissing'
+    ] as const;
+    const labels = statusKeys.map((key) => t('en', key));
+    expect(labels).toEqual([
+      'Awaiting answer',
+      'Awaiting reload',
+      'Capturing',
+      'Route normal',
+      'Route mismatch',
+      'Route conflict',
+      'Route captured',
+      'Label only',
+      'Route missing'
+    ]);
+    expect(Math.max(...labels.map((label) => label.length))).toBeLessThanOrEqual(15);
+    expect(t('en', 'overlay.liveHint')).toBe('Send a message to capture its route.');
+    expect(t('en', 'overlay.reloadHint')).toBe('Reload to read the response route.');
+    expect(t('en', 'pow.inline')).toBe('POW');
   });
 
   it('defines every translation key referenced by extension HTML', () => {

@@ -119,7 +119,9 @@ async function setMode(mode: CaptureMode): Promise<void> {
 async function setOverlayEnabled(overlayEnabled: boolean): Promise<void> {
   const response = await send({
     type: 'route:update-settings',
-    settings: overlayEnabled ? { overlayEnabled: true, overlayMinimized: false } : { overlayEnabled: false }
+    settings: overlayEnabled
+      ? { overlayEnabled: true, overlayMode: 'full', overlayMinimized: false }
+      : { overlayEnabled: false }
   });
   if (response.state) render(response.state);
   showFeedback(overlayEnabled ? 'status.overlayShown' : 'status.overlayHidden');

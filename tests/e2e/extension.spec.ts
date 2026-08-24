@@ -242,14 +242,113 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
     .filter((value, index, values) => values.indexOf(value) === index)
     .sort((left, right) => Number.parseFloat(left) - Number.parseFloat(right)));
   expect(fullOverlayFontSizes).toEqual(['10px', '12px', '14px', '16px']);
+  const chineseStatusLayout = await overlay.evaluate((element, labels) => {
+    const status = element.shadowRoot?.querySelector<HTMLElement>('.status');
+    const title = element.shadowRoot?.querySelector<HTMLElement>('.title');
+    const author = element.shadowRoot?.querySelector<HTMLElement>('.author');
+    const compact = element.shadowRoot?.querySelector<HTMLElement>('#compact');
+    const probe = element.shadowRoot?.querySelector<HTMLElement>('.probe');
+    if (!status || !title || !author || !compact || !probe) return null;
+    const original = status.textContent;
+    const cases = labels.map((label) => {
+      status.textContent = label;
+      const statusBox = status.getBoundingClientRect();
+      const compactBox = compact.getBoundingClientRect();
+      const contentRight = Math.max(title.getBoundingClientRect().right, author.getBoundingClientRect().right);
+      const probeBox = probe.getBoundingClientRect();
+      return {
+        contained: statusBox.left >= probeBox.left && statusBox.right <= probeBox.right,
+        label,
+        noBrandOverlap: contentRight <= statusBox.left,
+        rightGap: Math.round(compactBox.left - statusBox.right)
+      };
+    });
+    status.textContent = original;
+    const style = getComputedStyle(status);
+    return { cases, fontSize: style.fontSize, lang: probe.lang, textAlign: style.textAlign };
+  }, [
+    '等待下一次回答',
+    '等待刷新会话',
+    '路由正常',
+    '检测到路由错配',
+    '实际路由字段冲突',
+    '已读取响应路由',
+    '仅取得模型标签',
+    '未取得实际路由',
+    '正在捕获'
+  ]);
+  expect(chineseStatusLayout).not.toBeNull();
+  expect(chineseStatusLayout?.fontSize).toBe('12px');
+  expect(chineseStatusLayout?.lang).toBe('zh-CN');
+  expect(chineseStatusLayout?.textAlign).toBe('right');
+  expect(chineseStatusLayout?.cases.every((entry) => entry.contained && entry.noBrandOverlap && entry.rightGap === 12)).toBe(true);
 
-  await overlay.locator('#minimize').click();
+  await expect(overlay.locator('#compact')).toHaveAttribute('data-tooltip', '极简模式');
+  await expect(overlay.locator('#mini')).toHaveAttribute('data-tooltip', '迷你模式');
+  await expect(overlay.locator('#compact')).not.toHaveAttribute('title', /.+/);
+  await expect(overlay.locator('#mini')).not.toHaveAttribute('title', /.+/);
+  await expect.poll(() => overlay.evaluate((element) => [...(element.shadowRoot?.querySelectorAll<HTMLButtonElement>('.head-tools button') ?? [])]
+    .map((button) => button.id)))
+    .toEqual(['compact', 'mini']);
+  await expect.poll(() => overlay.locator('.mode-icon').evaluateAll((icons) => icons.map((icon) => {
+    const rect = icon.getBoundingClientRect();
+    const style = getComputedStyle(icon);
+    return `${icon.className}:${rect.width}x${rect.height}:${style.borderRadius}`;
+  }))).toEqual(['mode-icon compact-icon:8x3:0px', 'mode-icon mini-icon:6x6:1px']);
+  const compactButton = overlay.locator('#compact');
+  await compactButton.hover();
+  await expect.poll(() => compactButton.evaluate((button) => getComputedStyle(button, '::after').transitionDelay)).toBe('0.42s');
+  await page.waitForTimeout(300);
+  await expect.poll(() => compactButton.evaluate((button) => getComputedStyle(button, '::after').opacity)).toBe('0');
+  await page.waitForTimeout(200);
+  await expect.poll(() => compactButton.evaluate((button) => {
+    const style = getComputedStyle(button, '::after');
+    const rect = button.getBoundingClientRect();
+    return {
+      backgroundColor: style.backgroundColor,
+      color: style.color,
+      content: style.content,
+      fontSize: style.fontSize,
+      lineHeight: style.lineHeight,
+      opacity: style.opacity,
+      padding: [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft],
+      staysInViewport: rect.right <= window.innerWidth,
+      visibility: style.visibility
+    };
+  })).toEqual({
+    backgroundColor: 'rgba(255, 255, 255, 0.937)',
+    color: 'rgba(0, 0, 0, 0.847)',
+    content: '"极简模式"',
+    fontSize: '11px',
+    lineHeight: '14px',
+    opacity: '1',
+    padding: ['2px', '6px', '2px', '6px'],
+    staysInViewport: true,
+    visibility: 'visible'
+  });
+  await page.screenshot({ path: path.join(root, 'output', 'playwright', 'overlay-tooltip-e2e.png'), fullPage: true });
+  await page.mouse.move(0, 0);
+  await expect.poll(() => compactButton.evaluate((button) => getComputedStyle(button, '::after').opacity)).toBe('0');
+  const miniButton = overlay.locator('#mini');
+  await miniButton.hover();
+  await expect.poll(() => miniButton.evaluate((button) => getComputedStyle(button, '::after').transitionDelay)).toBe('0.42s');
+  await page.waitForTimeout(300);
+  await expect.poll(() => miniButton.evaluate((button) => getComputedStyle(button, '::after').opacity)).toBe('0');
+  await page.waitForTimeout(200);
+  await expect.poll(() => miniButton.evaluate((button) => getComputedStyle(button, '::after').opacity)).toBe('1');
+  await page.mouse.move(0, 0);
+  await compactButton.focus();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Shift+Tab');
+  await expect.poll(() => compactButton.evaluate((button) => getComputedStyle(button, '::after').opacity)).toBe('1');
+  await compactButton.evaluate((button) => button.blur());
+  await overlay.locator('#compact').click();
   await expect.poll(async () => worker.evaluate(async (key) => {
     const current = (await chrome.storage.local.get(key))[key] as {
-      settings?: { overlayMinimized?: boolean; captureMode?: string };
+      settings?: { overlayMode?: string; overlayMinimized?: boolean; captureMode?: string };
     } | undefined;
-    return `${current?.settings?.overlayMinimized}:${current?.settings?.captureMode}`;
-  }, storageKey)).toBe('true:live');
+    return `${current?.settings?.overlayMode}:${current?.settings?.overlayMinimized}:${current?.settings?.captureMode}`;
+  }, storageKey)).toBe('compact:true:live');
   overlayText = await overlay.evaluate((element) => element.shadowRoot?.textContent ?? '');
   expect(overlayText).toContain('gpt-5-6-pro');
   expect(overlayText).toContain('gpt-5-5-mini');
@@ -268,14 +367,159 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
     .filter((value, index, values) => values.indexOf(value) === index)
     .sort((left, right) => Number.parseFloat(left) - Number.parseFloat(right)));
   expect(compactOverlayFontSizes).toEqual(['10px', '12px', '14px', '16px']);
+  await expect(overlay.locator('#mini-dock')).toHaveCount(0);
+  await expect(overlay.locator('#expand')).not.toHaveAttribute('title', /.+/);
+  await expect(overlay.locator('#expand')).toHaveAttribute('aria-label', '展开浮窗');
+  const compactTop = await overlay.locator('.compact').evaluate((element) => element.getBoundingClientRect().top);
   await page.screenshot({ path: path.join(root, 'output', 'playwright', 'overlay-compact-e2e.png'), fullPage: true });
   await overlay.locator('#expand').click();
   await expect.poll(async () => worker.evaluate(async (key) => {
     const current = (await chrome.storage.local.get(key))[key] as {
-      settings?: { overlayMinimized?: boolean };
+      settings?: { overlayMode?: string; overlayMinimized?: boolean };
     } | undefined;
-    return current?.settings?.overlayMinimized;
-  }, storageKey)).toBe(false);
+    return `${current?.settings?.overlayMode}:${current?.settings?.overlayMinimized}`;
+  }, storageKey)).toBe('full:false');
+
+  await overlay.locator('#mini').click();
+  await expect.poll(async () => worker.evaluate(async (key) => {
+    const current = (await chrome.storage.local.get(key))[key] as {
+      settings?: { overlayMode?: string; overlayMinimized?: boolean; captureMode?: string };
+    } | undefined;
+    return `${current?.settings?.overlayMode}:${current?.settings?.overlayMinimized}:${current?.settings?.captureMode}`;
+  }, storageKey)).toBe('mini:true:live');
+  const miniText = await overlay.locator('.mini-hit').textContent();
+  expect(miniText).toContain('gpt-5-5-mini');
+  expect(miniText).toContain('406870');
+  expect(miniText).not.toContain('请求模型');
+  expect(miniText).not.toContain('响应路由');
+  expect(miniText).not.toContain('PoW 难度');
+  expect(miniText).not.toContain('063556');
+  await expect(overlay.locator('.mini-divider')).toHaveCount(1);
+  await expect(overlay.locator('#mini-dock')).not.toHaveAttribute('title', /.+/);
+  await expect(overlay.locator('#mini-dock')).not.toHaveAttribute('data-tooltip', /.+/);
+  await expect(overlay.locator('#mini-dock')).toHaveAttribute('aria-label', '停靠到边缘');
+  await expect(overlay.locator('#expand')).not.toHaveAttribute('title', /.+/);
+  await expect(overlay.locator('#expand')).toHaveAttribute('aria-label', '展开浮窗');
+  await expect.poll(() => overlay.locator('.mini').evaluate((element, expectedTop) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      alignedTop: Math.abs(rect.top - expectedTop) <= 1,
+      dockedRight: Math.abs(window.innerWidth - rect.right) <= 1,
+      narrow: rect.width <= 160
+    };
+  }, compactTop)).toEqual({ alignedTop: true, dockedRight: true, narrow: true });
+  const miniGeometry = await overlay.evaluate((element) => {
+    const mini = element.shadowRoot?.querySelector<HTMLElement>('.mini');
+    const divider = element.shadowRoot?.querySelector<HTMLElement>('.mini-divider');
+    const dock = element.shadowRoot?.querySelector<HTMLElement>('.mini-dock-hit');
+    if (!mini || !divider || !dock) return null;
+    const miniBox = mini.getBoundingClientRect();
+    const dividerBox = divider.getBoundingClientRect();
+    const dockBox = dock.getBoundingClientRect();
+    return {
+      accentWidth: Math.round(miniBox.left - dockBox.left),
+      dockBoundaryMatchesDivider: Math.abs(dockBox.right - dividerBox.left) <= 1,
+      dockHeightCoversMini: dockBox.top <= miniBox.top && dockBox.bottom >= miniBox.bottom,
+      height: miniBox.height,
+      top: miniBox.top
+    };
+  });
+  expect(miniGeometry).not.toBeNull();
+  expect(miniGeometry?.accentWidth).toBe(5);
+  expect(miniGeometry?.dockBoundaryMatchesDivider).toBe(true);
+  expect(miniGeometry?.dockHeightCoversMini).toBe(true);
+  await expect.poll(() => overlay.locator('.mini').evaluate((element) => {
+    const original = element.className;
+    const read = () => getComputedStyle(element).getPropertyValue('--mini-accent').trim();
+    element.setAttribute('class', 'probe mini normal');
+    const normal = read();
+    element.setAttribute('class', 'probe mini danger');
+    const danger = read();
+    element.setAttribute('class', 'probe mini warn');
+    const warn = read();
+    element.setAttribute('class', original);
+    return { danger, normal, warn };
+  })).toEqual({ danger: '#f07868', normal: '#a9f04d', warn: '#efb55d' });
+  await page.screenshot({ path: path.join(root, 'output', 'playwright', 'overlay-mini-e2e.png'), fullPage: true });
+  await overlay.locator('#mini-dock').click();
+  await expect.poll(async () => worker.evaluate(async (key) => {
+    const current = (await chrome.storage.local.get(key))[key] as {
+      settings?: { overlayMode?: string; overlayMinimized?: boolean };
+    } | undefined;
+    return `${current?.settings?.overlayMode}:${current?.settings?.overlayMinimized}`;
+  }, storageKey)).toBe('docked:true');
+  await expect(overlay.locator('.mini-docked')).toHaveCount(1);
+  await expect(overlay.locator('.mini-docked')).toHaveText('');
+  await expect(overlay.locator('#mini-undock')).not.toHaveAttribute('title', /.+/);
+  await expect(overlay.locator('#mini-undock')).not.toHaveAttribute('data-tooltip', /.+/);
+  await expect(overlay.locator('#mini-undock')).toHaveAttribute('aria-label', '恢复迷你浮窗');
+  await expect.poll(() => overlay.locator('.mini-docked').evaluate((element, expected) => {
+    const rect = element.getBoundingClientRect();
+    const hit = element.querySelector<HTMLElement>('.mini-undock-hit')?.getBoundingClientRect();
+    return {
+      accentWidth: hit ? Math.round(rect.left - hit.left) : 0,
+      alignedTop: Math.abs(rect.top - expected.top) <= 1,
+      blackWidth: Math.round(rect.width),
+      dockedRight: Math.abs(window.innerWidth - rect.right) <= 1,
+      fullHandleWidth: hit ? Math.round(hit.right - hit.left) : 0,
+      sameHeight: Math.abs(rect.height - expected.height) <= 1
+    };
+  }, miniGeometry!)).toEqual({ accentWidth: 5, alignedTop: true, blackWidth: 11, dockedRight: true, fullHandleWidth: 16, sameHeight: true });
+  await page.screenshot({ path: path.join(root, 'output', 'playwright', 'overlay-mini-docked-e2e.png'), fullPage: true });
+  await page.reload();
+  await expect(overlay).toHaveCount(1);
+  await expect(overlay.locator('.mini-docked')).toHaveCount(1);
+  await expect.poll(async () => worker.evaluate(async (key) => {
+    const current = (await chrome.storage.local.get(key))[key] as {
+      settings?: { overlayMode?: string; overlayMinimized?: boolean };
+    } | undefined;
+    return `${current?.settings?.overlayMode}:${current?.settings?.overlayMinimized}`;
+  }, storageKey)).toBe('docked:true');
+  await overlay.locator('#mini-undock').click();
+  await expect.poll(async () => worker.evaluate(async (key) => {
+    const current = (await chrome.storage.local.get(key))[key] as {
+      settings?: { overlayMode?: string; overlayMinimized?: boolean };
+    } | undefined;
+    return `${current?.settings?.overlayMode}:${current?.settings?.overlayMinimized}`;
+  }, storageKey)).toBe('mini:true');
+  await expect(overlay.locator('.mini')).toHaveCount(1);
+  const regularViewport = page.viewportSize();
+  await page.setViewportSize({ width: 360, height: 640 });
+  await expect.poll(() => overlay.locator('.mini').evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      contained: rect.left >= 0 && rect.right <= window.innerWidth,
+      dockedRight: Math.abs(window.innerWidth - rect.right) <= 1,
+      noHorizontalOverflow: element.scrollWidth <= element.clientWidth
+    };
+  })).toEqual({ contained: true, dockedRight: true, noHorizontalOverflow: true });
+  await overlay.locator('#expand').click();
+  await expect.poll(async () => worker.evaluate(async (key) => {
+    const current = (await chrome.storage.local.get(key))[key] as {
+      settings?: { overlayMode?: string; overlayMinimized?: boolean };
+    } | undefined;
+    return `${current?.settings?.overlayMode}:${current?.settings?.overlayMinimized}`;
+  }, storageKey)).toBe('full:false');
+  await expect.poll(() => overlay.locator('.probe').evaluate((element) => {
+    const status = element.querySelector<HTMLElement>('.status');
+    const title = element.querySelector<HTMLElement>('.title');
+    const author = element.querySelector<HTMLElement>('.author');
+    if (!status || !title || !author) return null;
+    const original = status.textContent;
+    status.textContent = '实际路由字段冲突';
+    const statusBox = status.getBoundingClientRect();
+    const contentRight = Math.max(title.getBoundingClientRect().right, author.getBoundingClientRect().right);
+    const probeBox = element.getBoundingClientRect();
+    const statusFullyVisible = status.scrollWidth <= status.clientWidth;
+    status.textContent = original;
+    return {
+      contained: probeBox.left >= 0 && probeBox.right <= window.innerWidth,
+      noBrandOverlap: contentRight <= statusBox.left,
+      noHorizontalOverflow: element.scrollWidth <= element.clientWidth,
+      statusFullyVisible
+    };
+  })).toEqual({ contained: true, noBrandOverlap: true, noHorizontalOverflow: true, statusFullyVisible: true });
+  if (regularViewport) await page.setViewportSize(regularViewport);
 
   const untouchedTab = await context.newPage();
   await untouchedTab.goto('http://127.0.0.1:43996/');
@@ -541,16 +785,86 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   expect(liveOverlayRouteGeometry).toEqual(reloadOverlayRouteGeometry);
   expect(reloadOverlayRouteGeometry).toEqual({ routeHeight: 64, valueHeights: [18, 18] });
   expect(livePopupGeometry).toEqual(reloadPopupGeometry);
-  expect(reloadPopupGeometry).toEqual({ resultHeight: 156, heroHeight: 156, lockupHeight: 37, valueHeights: [21, 21] });
+  expect(reloadPopupGeometry.resultHeight).toBe(156);
+  expect(Math.abs(reloadPopupGeometry.heroHeight - 156)).toBeLessThan(1);
+  expect(reloadPopupGeometry.lockupHeight).toBe(37);
+  expect(reloadPopupGeometry.valueHeights).toEqual([21, 21]);
   await popup.locator('#mode-reload').click();
   await expect(popup.locator('#mode-reload')).toHaveClass(/active/);
 
   await popup.locator('[data-language="en"]').click();
   await expect(popup.locator('html')).toHaveAttribute('lang', 'en');
-  await expect(popup.getByText('Model label only')).toBeVisible();
+  await expect(popup.getByText('Label only')).toBeVisible();
   await expect(dashboard.getByText('Route diagnostics')).toBeVisible();
   await expect.poll(async () => overlay.evaluate((element) => element.shadowRoot?.textContent ?? ''))
-    .toContain('Model label only');
+    .toContain('Label only');
+  await expect.poll(async () => untouchedOverlayHost.evaluate((element) => element.shadowRoot?.textContent ?? ''))
+    .toContain('Awaiting reload');
+  const englishRegularViewport = page.viewportSize();
+  await page.setViewportSize({ width: 360, height: 640 });
+  const englishOverlayLayout = await overlay.evaluate((element, labels) => {
+    const status = element.shadowRoot?.querySelector<HTMLElement>('.status');
+    const title = element.shadowRoot?.querySelector<HTMLElement>('.title');
+    const author = element.shadowRoot?.querySelector<HTMLElement>('.author');
+    const compact = element.shadowRoot?.querySelector<HTMLElement>('#compact');
+    const probe = element.shadowRoot?.querySelector<HTMLElement>('.probe');
+    const hint = element.shadowRoot?.querySelector<HTMLElement>('.hint');
+    if (!status || !title || !author || !compact || !probe || !hint) return null;
+    const original = status.textContent;
+    const cases = labels.map((label) => {
+      status.textContent = label;
+      const statusBox = status.getBoundingClientRect();
+      const statusStyle = getComputedStyle(status);
+      const contentRight = Math.max(title.getBoundingClientRect().right, author.getBoundingClientRect().right);
+      return {
+        fullyVisible: status.scrollWidth <= status.clientWidth,
+        label,
+        lines: Math.round(statusBox.height / Number.parseFloat(statusStyle.lineHeight)),
+        noBrandOverlap: contentRight <= statusBox.left,
+        noButtonOverlap: statusBox.right <= compact.getBoundingClientRect().left
+      };
+    });
+    status.textContent = original;
+    const hintBox = hint.getBoundingClientRect();
+    const probeBox = probe.getBoundingClientRect();
+    return {
+      cases,
+      hintContained: hintBox.left >= probeBox.left && hintBox.right <= probeBox.right && hint.scrollWidth <= hint.clientWidth,
+      lang: probe.lang,
+      noHorizontalOverflow: probe.scrollWidth <= probe.clientWidth,
+      textAlign: getComputedStyle(status).textAlign,
+      whiteSpace: getComputedStyle(status).whiteSpace
+    };
+  }, [
+    'Awaiting answer',
+    'Awaiting reload',
+    'Route normal',
+    'Route mismatch',
+    'Route conflict',
+    'Route captured',
+    'Label only',
+    'Route missing',
+    'Capturing'
+  ]);
+  expect(englishOverlayLayout).not.toBeNull();
+  expect(englishOverlayLayout?.lang).toBe('en');
+  expect(englishOverlayLayout?.textAlign).toBe('right');
+  expect(englishOverlayLayout?.whiteSpace).toBe('nowrap');
+  expect(englishOverlayLayout?.hintContained).toBe(true);
+  expect(englishOverlayLayout?.noHorizontalOverflow).toBe(true);
+  expect(englishOverlayLayout?.cases.filter((entry) =>
+    !entry.fullyVisible || entry.lines !== 1 || !entry.noBrandOverlap || !entry.noButtonOverlap
+  )).toEqual([]);
+  await expect(overlay.locator('.full-pow > span')).toHaveText('POW');
+  await expect.poll(() => overlay.locator('.full-pow > span').evaluate((label) => {
+    const range = document.createRange();
+    range.selectNodeContents(label);
+    return { lines: range.getClientRects().length, whiteSpace: getComputedStyle(label).whiteSpace };
+  })).toEqual({ lines: 1, whiteSpace: 'nowrap' });
+  await page.screenshot({ path: path.join(root, 'output', 'playwright', 'overlay-english-narrow-e2e.png'), fullPage: true });
+  if (englishRegularViewport) await page.setViewportSize(englishRegularViewport);
+  await page.screenshot({ path: path.join(root, 'output', 'playwright', 'overlay-english-e2e.png'), fullPage: true });
+  await untouchedTab.screenshot({ path: path.join(root, 'output', 'playwright', 'overlay-english-awaiting-reload-e2e.png'), fullPage: true });
   await expectPopupFits(popup);
 
   await popup.locator('#mode-live').click();

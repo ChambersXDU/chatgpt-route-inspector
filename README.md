@@ -44,7 +44,7 @@ ChatGPT Route Inspector 是一款适用于 Chromium 浏览器的 ChatGPT 模型�
 
 - **实时请求检测**：发送新消息后，显示本轮请求模型与响应路由。
 - **会话重载检测**：刷新已有会话，读取已完成回答中可用的响应路由信息。
-- **页面浮窗**：在 ChatGPT 页面直接查看结果，支持完整、最小化和隐藏三种状态。
+- **页面浮窗**：在 ChatGPT 页面直接查看结果，支持完整、极简、迷你、边缘收纳和隐藏状态。
 - **路由诊断台**：查看本机记录、证据信息，并导出 Markdown 或 JSON 报告。
 - **PoW 难度显示**：显示原始十六进制难度值及其十进制换算结果。
 - **中英文界面**：Popup、浮窗、诊断台、设置和报告均支持中文与英文。
@@ -58,7 +58,7 @@ ChatGPT Route Inspector 是一款适用于 Chromium 浏览器的 ChatGPT 模型�
 
 ### 手动安装发布包
 
-1. 下载并解压 [`chatgpt-route-inspector-1.0.2.zip`](https://github.com/Liu-Bot24/chatgpt-route-inspector/releases/download/v1.0.2/chatgpt-route-inspector-1.0.2.zip)。
+1. 下载并解压 [`chatgpt-route-inspector-1.0.3.zip`](https://github.com/Liu-Bot24/chatgpt-route-inspector/releases/download/v1.0.3/chatgpt-route-inspector-1.0.3.zip)。
 2. 打开 `chrome://extensions/`。
 3. 开启右上角的“开发者模式”。
 4. 点击“加载已解压的扩展程序”。
@@ -93,8 +93,11 @@ npm run build
 
 ### 管理页面浮窗
 
-- 点击右上角的最小化按钮，可将完整浮窗收起为精简状态。
-- 点击精简浮窗的任意位置，可恢复完整状态。
+- 点击右上角的“极简模式”按钮，可显示请求模型、响应路由和 PoW 难度。
+- 点击“迷你模式”按钮，可将浮窗贴靠到右侧边缘，仅显示响应路由值和 PoW 十进制值。
+- 点击极简浮窗可恢复完整状态。
+- 在迷你浮窗中，点击左侧窄边区域可将其收纳到窗口右侧；点击其余内容区域可恢复完整状态。
+- 点击收纳后保留在窗口右侧的窄边条，可恢复迷你浮窗。
 - 点击“隐藏浮窗”后，浮窗会从页面完全消失。
 - 如需重新显示，请在扩展 Popup 中点击“显示浮窗”。
 
