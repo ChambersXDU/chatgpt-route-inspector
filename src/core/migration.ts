@@ -22,7 +22,7 @@ function inferMode(record: UnknownRecord, sources: CaptureSource[]): CaptureMode
   if (record.captureMode === 'live' || record.captureMode === 'reload') return record.captureMode;
   if ((sources.includes('conversation_record') || sources.includes('assistant_dom')) &&
       !sources.includes('page_fetch') && !sources.includes('page_websocket')) return 'reload';
-  if (typeof record.pageUrl === 'string' && record.pageUrl.includes('/backend-api/conversation/')) return 'reload';
+  if (typeof record.pageUrl === 'string' && /\/backend-api\/conversations?\//.test(record.pageUrl)) return 'reload';
   return 'live';
 }
 

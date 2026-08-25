@@ -11,7 +11,10 @@ function sanitizePageUrl(value: string | null): string | null {
   try {
     const url = new URL(value);
     url.pathname = redactConversationPathname(url.pathname);
-    if (url.pathname.startsWith('/backend-api/conversation/')) url.pathname = '/backend-api/conversation/[redacted]';
+    url.pathname = url.pathname.replace(
+      /^\/backend-api\/(conversations?)\/[^/]+/,
+      '/backend-api/$1/[redacted]'
+    );
     url.search = '';
     url.hash = '';
     return url.toString();
@@ -47,7 +50,7 @@ export function buildMarkdownReport(state: InspectorState, language: UiLanguage 
         `生成时间：${new Date().toISOString()}`,
         `记录数：${exported.turns.length}`,
         '',
-        '| 时间 | 模式 | 请求模型 | 模型标签 | 响应路由模型 | 路由字段来源 | 结论 | 请求 ID |',
+        '| 时间 | 模式 | 请求模型 | 模型标签 | 响应路由模型 | 响应来源 | 结论 | 请求 ID |',
         '|---|---|---|---|---|---|---|---|'
       ]
     : [
@@ -56,7 +59,7 @@ export function buildMarkdownReport(state: InspectorState, language: UiLanguage 
         `Generated: ${new Date().toISOString()}`,
         `Records: ${exported.turns.length}`,
         '',
-        '| Time | Mode | Requested model | Model label | Response route | Route field source | Verdict | Request ID |',
+        '| Time | Mode | Requested model | Model label | Response route | Response source | Verdict | Request ID |',
         '|---|---|---|---|---|---|---|---|'
       ];
   for (const turn of exported.turns) {

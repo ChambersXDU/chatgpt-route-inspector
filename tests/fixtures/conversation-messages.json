@@ -1,0 +1,38 @@
+{
+  "conversation_id": "e2e-conversation",
+  "current_node": "assistant-public-id",
+  "messages": [
+    {
+      "id": "user-private",
+      "author": { "role": "user" },
+      "content": { "parts": ["PRIVATE_USER_TEXT"] },
+      "metadata": {
+        "default_model_slug": "gpt-5-6-pro",
+        "resolved_model_slug": "gpt-5-5-mini",
+        "request_id": "req-record-112233",
+        "conversation_id": "e2e-conversation"
+      }
+    },
+    {
+      "id": "assistant-public-id",
+      "parent_id": "user-private",
+      "author": { "role": "assistant" },
+      "content": { "parts": ["PRIVATE_ASSISTANT_TEXT"] },
+      "metadata": {
+        "model_slug": "gpt-5-6-pro",
+        "request_id": "req-record-112233",
+        "conversation_id": "e2e-conversation",
+        "tool_invoked": true,
+        "tool_name": "python",
+        "is_search": false,
+        "did_prompt_contain_image": false
+      }
+    }
+  ],
+  "page_info": {
+    "start_cursor": "cursor-current",
+    "end_cursor": "cursor-current",
+    "has_previous_page": false,
+    "has_next_page": false
+  }
+}

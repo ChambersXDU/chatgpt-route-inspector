@@ -7,12 +7,13 @@ export type UiLanguage = 'zh' | 'en';
 export type OverlayMode = 'full' | 'compact' | 'mini' | 'docked';
 export type CapturePhase = 'requested' | 'responding' | 'completed' | 'failed';
 export type RouteVerdict = 'normal' | 'mismatch' | 'conflict' | 'unknown';
-export type RouteModelSource =
-  | 'resolved_model_slug'
-  | 'server_ste_metadata.model_slug';
 export type ModelLabelSource =
   | 'assistant.metadata.model_slug'
   | 'assistant[data-message-model-slug]';
+export type RouteModelSource =
+  | 'resolved_model_slug'
+  | 'server_ste_metadata.model_slug';
+export type ResponseModelSource = RouteModelSource | ModelLabelSource;
 
 export function normalizeOverlayMode(value: unknown, legacyMinimized = false): OverlayMode {
   if (value === 'full' || value === 'compact' || value === 'mini' || value === 'docked') return value;
@@ -42,7 +43,7 @@ export interface RouteFields {
 export interface RouteAssessment {
   verdict: RouteVerdict;
   routeModel: string | null;
-  routeModelSources: RouteModelSource[];
+  routeModelSources: ResponseModelSource[];
   modelLabel: string | null;
   modelLabelSources: ModelLabelSource[];
   modelLabelConflict: boolean;

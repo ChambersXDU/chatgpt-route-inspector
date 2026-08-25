@@ -25,6 +25,15 @@ describe('normalizeObservation', () => {
     expect(result?.pageUrl).toBe('https://chatgpt.com/g/[redacted]/c/[redacted]');
   });
 
+  it('redacts ids from the plural conversation record endpoint', () => {
+    const result = normalizeObservation({
+      captureId: 'capture-plural', source: 'conversation_record', captureMode: 'reload', phase: 'completed',
+      observedAt: '2026-08-11T01:00:00.000Z',
+      pageUrl: 'https://chatgpt.com/backend-api/conversations/private-id?num_turns=100'
+    });
+    expect(result?.pageUrl).toBe('https://chatgpt.com/backend-api/conversations/[redacted]');
+  });
+
   it('rejects invalid sources, modes, dates, and non-object input', () => {
     expect(normalizeObservation(null)).toBeNull();
     expect(normalizeObservation({ captureId: 'x', source: 'forged', captureMode: 'live', phase: 'completed', observedAt: new Date().toISOString() })).toBeNull();

@@ -80,11 +80,11 @@ export function modelLabelSourcesLabel(turn: RouteTurn | null, language: UiLangu
 export function assessmentReasons(turn: RouteTurn, language: UiLanguage): string[] {
   const reasons: string[] = [];
   if (turn.requestedModel) reasons.push(t(language, 'reason.requested', { model: turn.requestedModel }));
-  if (turn.defaultModelSlug) reasons.push(t(language, 'reason.default', { model: turn.defaultModelSlug }));
-
   const routeValues = {
     resolved_model_slug: turn.resolvedModelSlug,
-    'server_ste_metadata.model_slug': turn.serverModelSlug
+    'server_ste_metadata.model_slug': turn.serverModelSlug,
+    'assistant.metadata.model_slug': turn.responseModelSlug,
+    'assistant[data-message-model-slug]': turn.domModelSlug
   } as const;
   for (const source of turn.routeModelSources) {
     const model = routeValues[source];
@@ -101,22 +101,18 @@ export function assessmentReasons(turn: RouteTurn, language: UiLanguage): string
   }
 
   if (turn.modelLabelConflict) reasons.push(t(language, 'reason.labelConflict'));
+  if (turn.routeModel && turn.modelLabel && turn.routeModel !== turn.modelLabel) {
+    reasons.push(t(language, 'reason.labelRouteMismatch', { label: turn.modelLabel, route: turn.routeModel }));
+  }
   if (turn.verdict === 'conflict') {
     reasons.push(t(language, 'reason.routeConflict'));
     return reasons;
-  }
-  if (turn.routeModel && turn.modelLabel && turn.routeModel !== turn.modelLabel) {
-    reasons.push(t(language, 'reason.labelRouteMismatch', { label: turn.modelLabel, route: turn.routeModel }));
   }
   if (!turn.routeModel) {
     reasons.push(t(language, turn.modelLabel ? 'reason.labelOnly' : 'reason.noRoute'));
     return reasons;
   }
-  if (!turn.requestedModel) {
-    reasons.push(t(language, 'reason.noRequest'));
-    return reasons;
-  }
-  reasons.push(t(language, turn.verdict === 'normal' ? 'reason.match' : 'reason.mismatch'));
+  reasons.push(t(language, turn.verdict === 'normal' ? 'reason.match' : turn.verdict === 'mismatch' ? 'reason.mismatch' : 'reason.noRequest'));
   return reasons;
 }
 

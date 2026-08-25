@@ -22,12 +22,12 @@ describe('overlay verdict copy', () => {
   it('maps definitive route verdicts before evidence fallbacks', () => {
     expect(overlayVerdictCopy(turn({ verdict: 'normal' }), 'live', 'zh')).toEqual({ label: '路由正常', tone: 'normal' });
     expect(overlayVerdictCopy(turn({ verdict: 'mismatch' }), 'live', 'en')).toEqual({ label: 'Route mismatch', tone: 'danger' });
-    expect(overlayVerdictCopy(turn({ verdict: 'conflict' }), 'live', 'zh')).toEqual({ label: '实际路由字段冲突', tone: 'danger' });
+    expect(overlayVerdictCopy(turn({ verdict: 'conflict' }), 'live', 'zh')).toEqual({ label: '路由字段冲突', tone: 'danger' });
   });
 
   it('reports partial evidence without claiming a verdict', () => {
     expect(overlayVerdictCopy(turn({ routeModel: 'gpt-5-5-mini' }), 'reload', 'en')).toEqual({ label: 'Route captured', tone: 'warn' });
-    expect(overlayVerdictCopy(turn({ modelLabel: 'gpt-5-6-pro' }), 'reload', 'zh')).toEqual({ label: '仅取得模型标签', tone: 'warn' });
+    expect(overlayVerdictCopy(turn({ routeModel: 'gpt-5-6-pro', modelLabel: 'gpt-5-6-pro' }), 'reload', 'zh')).toEqual({ label: '已读取响应路由', tone: 'warn' });
     expect(overlayVerdictCopy(turn({ modelLabelConflict: true }), 'reload', 'en')).toEqual({ label: 'Label only', tone: 'warn' });
   });
 

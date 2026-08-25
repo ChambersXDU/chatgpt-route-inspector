@@ -1,4 +1,4 @@
-import type { ModelLabelSource, RouteAssessment, RouteFields, RouteModelSource } from './types';
+import type { ModelLabelSource, ResponseModelSource, RouteAssessment, RouteFields, RouteModelSource } from './types';
 
 function normalized(value: string | null): string | null {
   return value?.trim().toLowerCase() || null;
@@ -16,7 +16,7 @@ export function assessRoute(fields: RouteFields): RouteAssessment {
   ];
   const presentRoutes = routeCandidates.filter((candidate): candidate is { source: RouteModelSource; model: string } => candidate.model !== null);
   const presentLabels = labelCandidates.filter((candidate): candidate is { source: ModelLabelSource; model: string } => candidate.model !== null);
-  const routeModelSources = presentRoutes.map((candidate) => candidate.source);
+  const explicitRouteSources = presentRoutes.map((candidate) => candidate.source);
   const modelLabelSources = presentLabels.map((candidate) => candidate.source);
   const routeModels = [...new Set(presentRoutes.map((candidate) => candidate.model))];
   const modelLabels = [...new Set(presentLabels.map((candidate) => candidate.model))];
@@ -25,12 +25,18 @@ export function assessRoute(fields: RouteFields): RouteAssessment {
   const reasons: string[] = [];
 
   if (requested) reasons.push(`请求模型：${requested}`);
-  if (fields.defaultModelSlug) reasons.push(`默认模型字段：${fields.defaultModelSlug}（不参与路由判断）`);
-  for (const candidate of presentRoutes) reasons.push(`${candidate.source}：${candidate.model}（实际路由字段）`);
-  for (const candidate of presentLabels) reasons.push(`${candidate.source}：${candidate.model}（模型标签，不参与路由判断）`);
-  if (modelLabelConflict) reasons.push('模型标签字段互相不同，但这不等同于实际路由字段冲突');
+  for (const candidate of presentRoutes) reasons.push(`${candidate.source}：${candidate.model}（显式响应路由字段）`);
+  for (const candidate of presentLabels) reasons.push(`${candidate.source}：${candidate.model}（模型标签）`);
+  if (modelLabelConflict) reasons.push('模型标签字段互相不同');
 
-  if (routeModels.length > 1) {
+  const explicitRouteConflict = routeModels.length > 1;
+  const explicitRouteModel = explicitRouteConflict ? null : routeModels[0] ?? null;
+  const routeLabelConflict = Boolean(explicitRouteModel && presentLabels.some((candidate) => candidate.model !== explicitRouteModel));
+  if (explicitRouteConflict || routeLabelConflict) {
+    const routeModelSources: ResponseModelSource[] = [
+      ...explicitRouteSources,
+      ...(routeLabelConflict ? modelLabelSources : [])
+    ];
     return {
       verdict: 'conflict',
       routeModel: null,
@@ -38,29 +44,24 @@ export function assessRoute(fields: RouteFields): RouteAssessment {
       modelLabel,
       modelLabelSources,
       modelLabelConflict,
-      reasons: [...reasons, '响应中的实际路由字段互相冲突']
+      reasons: [...reasons, '响应路由证据字段之间存在不一致']
     };
   }
 
-  const routeModel = routeModels[0] ?? null;
-  if (routeModel && modelLabel && routeModel !== modelLabel) {
-    reasons.push(`模型标签 ${modelLabel} 与实际响应路由 ${routeModel} 不同；路由结论以实际路由字段为准`);
-  }
+  const routeModel = explicitRouteModel ?? modelLabel;
+  const routeModelSources: ResponseModelSource[] = explicitRouteModel
+    ? explicitRouteSources
+    : modelLabel
+      ? modelLabelSources
+      : [];
   if (!routeModel) {
-    reasons.push(modelLabel
-      ? '只取得模型标签，没有取得实际响应路由字段'
-      : '响应中没有可用的实际路由字段');
-    return {
-      verdict: 'unknown',
-      routeModel: null,
-      routeModelSources: [],
-      modelLabel,
-      modelLabelSources,
-      modelLabelConflict,
-      reasons
-    };
+    reasons.push(modelLabelConflict
+      ? '模型标签字段互相不同，无法确定响应路由'
+      : '响应中没有可用的响应路由字段或模型标签');
+    return { verdict: 'unknown', routeModel: null, routeModelSources, modelLabel, modelLabelSources, modelLabelConflict, reasons };
   }
 
+  if (!explicitRouteModel) reasons.push(`未取得显式响应路由字段；使用模型标签 ${routeModel} 作为响应路由`);
   if (!requested) {
     reasons.push('已取得响应路由模型，但当前记录没有对应的请求模型');
     return { verdict: 'unknown', routeModel, routeModelSources, modelLabel, modelLabelSources, modelLabelConflict, reasons };

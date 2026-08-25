@@ -66,7 +66,6 @@ function renderDetail(turn: RouteTurn | null, language: UiLanguage): void {
     ['detail.renderedAssistantLabel', turn.domModelSlug],
     ['detail.resolvedModel', turn.resolvedModelSlug],
     ['detail.serverModel', turn.serverModelSlug],
-    ['detail.defaultModel', turn.defaultModelSlug],
     ['detail.planType', turn.planType],
     ['detail.thinkingEffort', turn.thinkingEffort],
     ['detail.fastConvo', turn.fastConvo],

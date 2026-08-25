@@ -28,15 +28,22 @@ async function expectPopupFits(page: Page): Promise<void> {
       '.masthead-controls',
       '.popup-control-grid',
       '.popup-result-grid',
+      '.route-model',
+      '.route-model strong',
+      '.verdict-line',
       '.button-stack',
       '.pow-readout',
       '.footer-link'
     ];
-    const clipped = selectors.filter((selector) => {
-      const element = document.querySelector<HTMLElement>(selector);
-      if (!element) return true;
-      const box = element.getBoundingClientRect();
-      return box.left < 0 || box.right > window.innerWidth || box.top < 0 || box.bottom > window.innerHeight;
+    const clipped = selectors.flatMap((selector) => {
+      const elements = [...document.querySelectorAll<HTMLElement>(selector)];
+      if (elements.length === 0) return [selector];
+      return elements.flatMap((element, index) => {
+        const box = element.getBoundingClientRect();
+        return box.left < 0 || box.right > window.innerWidth || box.top < 0 || box.bottom > window.innerHeight
+          ? [`${selector}:${index}`]
+          : [];
+      });
     });
     const brand = document.querySelector<HTMLElement>('.masthead .brand')?.getBoundingClientRect();
     const controls = document.querySelector<HTMLElement>('.masthead-controls')?.getBoundingClientRect();
@@ -80,10 +87,10 @@ async function findExtensionCapableChromium(): Promise<string> {
 }
 
 test.beforeAll(async () => {
-  const [requestBody, responseBody, conversationRecord, frame] = await Promise.all([
+  const [requestBody, responseBody, conversationMessages, frame] = await Promise.all([
     readFile(path.join(root, 'tests', 'fixtures', 'conversation-request.json'), 'utf8'),
     readFile(path.join(root, 'tests', 'fixtures', 'handoff-response.sse'), 'utf8'),
-    readFile(path.join(root, 'tests', 'fixtures', 'conversation-record.json'), 'utf8'),
+    readFile(path.join(root, 'tests', 'fixtures', 'conversation-messages.json'), 'utf8'),
     readFile(path.join(root, 'tests', 'fixtures', 'websocket-route-frame.json'), 'utf8')
   ]);
   webSocketFrame = frame;
@@ -97,18 +104,18 @@ test.beforeAll(async () => {
       }));
       return;
     }
-    if (request.method === 'POST' && request.url === '/backend-api/f/conversation') {
+    if (request.method === 'POST' && ['/backend-api/f/conversation', '/backend-api/f/conversations'].includes(request.url ?? '')) {
       response.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-store' });
       response.end(responseBody);
       return;
     }
-    if (request.method === 'GET' && request.url === '/backend-api/conversation/e2e-conversation') {
+    if (request.method === 'GET' && request.url === '/backend-api/conversations/e2e-conversation?include_has_versions=true&num_turns=100') {
       response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-      response.end(conversationRecord);
+      response.end(conversationMessages);
       return;
     }
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
-    response.end(`<!doctype html><html><body><h1>Route fixture</h1><button id="ask">Run live fixture</button><pre id="done"></pre><script>const capturedFetch1=window.fetch;window.fetch=async function o1(...args){window.__routeReceiverOne=this===window;const response=await capturedFetch1.apply(this,args);const url=String(args[0] instanceof Request?args[0].url:args[0]);if(url.includes('/backend-api/f/conversation'))return new Response('data: [DONE]',{status:response.status,headers:{'content-type':'text/event-stream'}});return response};const capturedFetch2=window.fetch;window.fetch=async function o2(...args){window.__routeReceiverTwo=this===window;return capturedFetch2.apply(this,args)};const capturedWebSocket1=window.WebSocket;function ws1(...args){window.__routeWebSocketOne=true;return Reflect.construct(capturedWebSocket1,args,capturedWebSocket1)}ws1.prototype=capturedWebSocket1.prototype;for(const key of ['CONNECTING','OPEN','CLOSING','CLOSED'])Object.defineProperty(ws1,key,{value:capturedWebSocket1[key]});window.WebSocket=ws1;const capturedWebSocket2=window.WebSocket;function ws2(...args){window.__routeWebSocketTwo=true;return Reflect.construct(capturedWebSocket2,args,capturedWebSocket2)}ws2.prototype=capturedWebSocket2.prototype;for(const key of ['CONNECTING','OPEN','CLOSING','CLOSED'])Object.defineProperty(ws2,key,{value:capturedWebSocket2[key]});window.WebSocket=ws2;window.__routeSocketMessages=[];const openSocket=()=>new Promise((resolve,reject)=>{const socket=new window.WebSocket('ws://127.0.0.1:43996/backend-api/ws');window.__routeSocket=socket;socket.addEventListener('message',(event)=>window.__routeSocketMessages.push(event.data));socket.addEventListener('open',()=>resolve(socket),{once:true});socket.addEventListener('error',reject,{once:true})});const body=${JSON.stringify(requestBody)};document.querySelector('#ask').onclick=async()=>{const socket=await openSocket();const response=await window.fetch('/backend-api/f/conversation',{method:'POST',headers:{'content-type':'application/json'},body});document.querySelector('#done').textContent=await response.text();socket.send('emit-route')};const appendAssistant=(id)=>{const assistant=document.createElement('div');assistant.dataset.messageAuthorRole='assistant';assistant.dataset.messageId=id;assistant.dataset.messageModelSlug='gpt-5-6-pro';assistant.textContent='PRIVATE_ASSISTANT_TEXT';document.body.append(assistant)};if(localStorage.getItem('route-fixture-dom-only')==='1'){localStorage.removeItem('route-fixture-dom-only');appendAssistant('fixture-dom-only-message')}if(localStorage.getItem('route-fixture-reload')==='1'){localStorage.removeItem('route-fixture-reload');appendAssistant('fixture-assistant-message');void window.fetch('/backend-api/conversation/e2e-conversation').then((response)=>response.json());}</script></body></html>`);
+    response.end(`<!doctype html><html><body><h1>Route fixture</h1><button id="ask">Run live fixture</button><pre id="done"></pre><script>const capturedFetch1=window.fetch;window.fetch=async function o1(...args){window.__routeReceiverOne=this===window;const response=await capturedFetch1.apply(this,args);const url=String(args[0] instanceof Request?args[0].url:args[0]);if(url.includes('/backend-api/f/conversation'))return new Response('data: [DONE]',{status:response.status,headers:{'content-type':'text/event-stream'}});return response};const capturedFetch2=window.fetch;window.fetch=async function o2(...args){window.__routeReceiverTwo=this===window;return capturedFetch2.apply(this,args)};const capturedWebSocket1=window.WebSocket;function ws1(...args){window.__routeWebSocketOne=true;return Reflect.construct(capturedWebSocket1,args,capturedWebSocket1)}ws1.prototype=capturedWebSocket1.prototype;for(const key of ['CONNECTING','OPEN','CLOSING','CLOSED'])Object.defineProperty(ws1,key,{value:capturedWebSocket1[key]});window.WebSocket=ws1;const capturedWebSocket2=window.WebSocket;function ws2(...args){window.__routeWebSocketTwo=true;return Reflect.construct(capturedWebSocket2,args,capturedWebSocket2)}ws2.prototype=capturedWebSocket2.prototype;for(const key of ['CONNECTING','OPEN','CLOSING','CLOSED'])Object.defineProperty(ws2,key,{value:capturedWebSocket2[key]});window.WebSocket=ws2;window.__routeSocketMessages=[];const openSocket=()=>new Promise((resolve,reject)=>{const socket=new window.WebSocket('ws://127.0.0.1:43996/backend-api/ws');window.__routeSocket=socket;socket.addEventListener('message',(event)=>window.__routeSocketMessages.push(event.data));socket.addEventListener('open',()=>resolve(socket),{once:true});socket.addEventListener('error',reject,{once:true})});const body=${JSON.stringify(requestBody)};document.querySelector('#ask').onclick=async()=>{const socket=await openSocket();const response=await window.fetch('/backend-api/f/conversations',{method:'POST',headers:{'content-type':'application/json'},body});document.querySelector('#done').textContent=await response.text();socket.send('emit-route')};const appendAssistant=(id)=>{const assistant=document.createElement('div');assistant.dataset.messageAuthorRole='assistant';assistant.dataset.messageId=id;assistant.dataset.messageModelSlug='gpt-5-6-pro';assistant.textContent='PRIVATE_ASSISTANT_TEXT';document.body.append(assistant)};if(localStorage.getItem('route-fixture-dom-only')==='1'){localStorage.removeItem('route-fixture-dom-only');appendAssistant('fixture-dom-only-message')}if(localStorage.getItem('route-fixture-reload')==='1'){localStorage.removeItem('route-fixture-reload');appendAssistant('fixture-assistant-message');void window.fetch('/backend-api/conversations/e2e-conversation?include_has_versions=true&num_turns=100').then((response)=>response.json());}</script></body></html>`);
   });
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
@@ -212,7 +219,7 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
     } | undefined;
     const live = state?.turns?.find((turn) => turn.captureMode === 'live');
     return live ? `${live.verdict}:${live.routeModel}:${live.modelLabel}:${live.sources?.join('+')}` : 'missing';
-  }, storageKey)).toBe('mismatch:gpt-5-5-mini:gpt-5-6-pro:page_fetch+page_websocket');
+  }, storageKey)).toBe('conflict:null:gpt-5-6-pro:page_fetch+page_websocket');
 
   await expect.poll(async () => worker.evaluate(async (key) => {
     const state = (await chrome.storage.local.get(key))[key] as {
@@ -228,7 +235,7 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   expect(stored).not.toMatch(/SECRET_PROMPT|SECRET_ANSWER|HANDOFF_SECRET|PRIVATE_POW_SEED|PRIVATE_POW_FINGERPRINT|PRIVATE_PREPARE_TOKEN|PRIVATE_TURNSTILE_PAYLOAD|private\.pdf|confidence|effectiveModel/i);
 
   let overlayText = await overlay.evaluate((element) => element.shadowRoot?.textContent ?? '');
-  expect(overlayText).toContain('检测到路由错配');
+  expect(overlayText).toContain('路由字段冲突');
   expect(overlayText).toContain('resolved_model_slug');
   expect(overlayText).toContain('PoW 难度');
   expect(overlayText).toContain('063556（406870）');
@@ -271,7 +278,7 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
     '等待刷新会话',
     '路由正常',
     '检测到路由错配',
-    '实际路由字段冲突',
+    '路由字段冲突',
     '已读取响应路由',
     '仅取得模型标签',
     '未取得实际路由',
@@ -351,7 +358,7 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   }, storageKey)).toBe('compact:true:live');
   overlayText = await overlay.evaluate((element) => element.shadowRoot?.textContent ?? '');
   expect(overlayText).toContain('gpt-5-6-pro');
-  expect(overlayText).toContain('gpt-5-5-mini');
+  expect(overlayText).toContain('路由字段冲突');
   expect(overlayText).toContain('063556');
   expect(overlayText).toContain('|');
   expect(overlayText).toContain('406870');
@@ -367,6 +374,18 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
     .filter((value, index, values) => values.indexOf(value) === index)
     .sort((left, right) => Number.parseFloat(left) - Number.parseFloat(right)));
   expect(compactOverlayFontSizes).toEqual(['10px', '12px', '14px', '16px']);
+  await expect.poll(() => overlay.locator('.compact').evaluate((element) => {
+    const route = element.querySelector<HTMLElement>('.route');
+    const models = [...element.querySelectorAll<HTMLElement>('.model')];
+    const values = [...element.querySelectorAll<HTMLElement>('.model b')];
+    const boxes = models.map((model) => model.getBoundingClientRect());
+    return {
+      clippedValues: values.every((value) => getComputedStyle(value).overflow === 'hidden'),
+      contained: Boolean(route && boxes.every((box) => box.left >= route.getBoundingClientRect().left && box.right <= route.getBoundingClientRect().right)),
+      noModelOverlap: boxes.length === 2 && boxes[0]!.right <= boxes[1]!.left,
+      noHorizontalOverflow: element.scrollWidth <= element.clientWidth
+    };
+  })).toEqual({ clippedValues: true, contained: true, noModelOverlap: true, noHorizontalOverflow: true });
   await expect(overlay.locator('#mini-dock')).toHaveCount(0);
   await expect(overlay.locator('#expand')).not.toHaveAttribute('title', /.+/);
   await expect(overlay.locator('#expand')).toHaveAttribute('aria-label', '展开浮窗');
@@ -388,13 +407,24 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
     return `${current?.settings?.overlayMode}:${current?.settings?.overlayMinimized}:${current?.settings?.captureMode}`;
   }, storageKey)).toBe('mini:true:live');
   const miniText = await overlay.locator('.mini-hit').textContent();
-  expect(miniText).toContain('gpt-5-5-mini');
+  expect(miniText).toContain('路由字段冲突');
   expect(miniText).toContain('406870');
   expect(miniText).not.toContain('请求模型');
   expect(miniText).not.toContain('响应路由');
   expect(miniText).not.toContain('PoW 难度');
   expect(miniText).not.toContain('063556');
   await expect(overlay.locator('.mini-divider')).toHaveCount(1);
+  await expect.poll(() => overlay.locator('.mini').evaluate((element) => {
+    const values = [...element.querySelectorAll<HTMLElement>('.mini-value')];
+    const boxes = values.map((value) => value.getBoundingClientRect());
+    const root = element.getBoundingClientRect();
+    return {
+      clippedValues: values.every((value) => getComputedStyle(value).overflow === 'hidden'),
+      contained: boxes.every((box) => box.left >= root.left && box.right <= root.right),
+      noValueOverlap: boxes.length === 2 && boxes[0]!.bottom <= boxes[1]!.top,
+      noHorizontalOverflow: element.scrollWidth <= element.clientWidth
+    };
+  })).toEqual({ clippedValues: true, contained: true, noValueOverlap: true, noHorizontalOverflow: true });
   await expect(overlay.locator('#mini-dock')).not.toHaveAttribute('title', /.+/);
   await expect(overlay.locator('#mini-dock')).not.toHaveAttribute('data-tooltip', /.+/);
   await expect(overlay.locator('#mini-dock')).toHaveAttribute('aria-label', '停靠到边缘');
@@ -506,7 +536,7 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
     const author = element.querySelector<HTMLElement>('.author');
     if (!status || !title || !author) return null;
     const original = status.textContent;
-    status.textContent = '实际路由字段冲突';
+    status.textContent = '路由字段冲突';
     const statusBox = status.getBoundingClientRect();
     const contentRight = Math.max(title.getBoundingClientRect().right, author.getBoundingClientRect().right);
     const probeBox = element.getBoundingClientRect();
@@ -568,7 +598,7 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
     } | undefined;
     const fallback = state?.turns?.find((turn) => turn.captureMode === 'reload' && turn.sources?.includes('assistant_dom'));
     return fallback ? `${fallback.routeModel}:${fallback.modelLabel}` : 'missing';
-  }, storageKey)).toBe('null:gpt-5-6-pro');
+  }, storageKey)).toBe('gpt-5-6-pro:gpt-5-6-pro');
   await domFallbackTab.close();
 
   const projectReloadTab = await context.newPage();
@@ -578,7 +608,7 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   const projectOverlay = projectReloadTab.locator('#chatgpt-route-inspector-root');
   await expect(projectOverlay).toHaveCount(1);
   await expect.poll(() => projectOverlay.evaluate((element) => element.shadowRoot?.textContent ?? ''))
-    .toContain('gpt-5-5-mini');
+    .toContain('路由字段冲突');
   await expect.poll(() => projectOverlay.evaluate((element) => element.shadowRoot?.textContent ?? ''))
     .toContain('resolved_model_slug');
   await projectReloadTab.close();
@@ -593,7 +623,7 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
     } | undefined;
     const reload = state?.turns?.find((turn) => turn.captureMode === 'reload');
     return reload ? `${reload.routeModel}:${reload.modelLabel}:${reload.verdict}:${reload.sources?.join('+')}` : 'missing';
-  }, storageKey)).toBe('gpt-5-5-mini:gpt-5-6-pro:unknown:conversation_record');
+  }, storageKey)).toBe('null:gpt-5-6-pro:conflict:conversation_record');
   await page.waitForTimeout(1400);
   expect(await worker.evaluate(async (key) => {
     const state = (await chrome.storage.local.get(key))[key] as {
@@ -607,10 +637,9 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   }, storageKey)).toEqual({ latest: 'conversation_record', domFallbackCount: 1 });
 
   overlayText = await overlay.evaluate((element) => element.shadowRoot?.textContent ?? '');
-  expect(overlayText).toContain('已读取响应路由');
+  expect(overlayText).toContain('路由字段冲突');
   expect(overlayText).toContain('重载不提供');
   expect(overlayText).toContain('resolved_model_slug');
-  expect(overlayText).toContain('gpt-5-5-mini');
   expect(overlayText).toContain('gpt-5-6-pro');
 
   stored = await worker.evaluate(async (key) => JSON.stringify((await chrome.storage.local.get(key))[key]), storageKey);
@@ -664,7 +693,8 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   // extension tab, so bring the ChatGPT fixture back to the foreground before reloading it.
   await page.bringToFront();
   await popup.reload();
-  await expect(popup.getByText('已读取响应路由')).toBeVisible();
+  await expect(popup.locator('.route-model strong').last()).toHaveText('路由字段冲突');
+  await expect(popup.locator('.verdict-line b')).toHaveText('路由字段冲突');
   await expect(popup.getByText('重载不提供')).toBeVisible();
   await expect(popup.getByText('会话重载').first()).toBeVisible();
   await expect(popup.locator('#pow-hex')).toHaveText('063556');
@@ -743,9 +773,9 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
     return spaTurn
       ? `${spaTurn.routeModel}:${spaTurn.modelLabel}:${spaTurn.sources?.join('+')}`
       : 'missing';
-  }, storageKey)).toBe('null:gpt-5-5-instant:assistant_dom');
+  }, storageKey)).toBe('gpt-5-5-instant:gpt-5-5-instant:assistant_dom');
   overlayText = await overlay.evaluate((element) => element.shadowRoot?.textContent ?? '');
-  expect(overlayText).toContain('仅取得模型标签');
+  expect(overlayText).toContain('已读取响应路由');
   expect(overlayText).toContain('gpt-5-5-instant');
   expect(overlayText).not.toContain('gpt-5-5-mini');
 
@@ -794,10 +824,10 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
 
   await popup.locator('[data-language="en"]').click();
   await expect(popup.locator('html')).toHaveAttribute('lang', 'en');
-  await expect(popup.getByText('Label only')).toBeVisible();
+  await expect(popup.getByText('Route captured')).toBeVisible();
   await expect(dashboard.getByText('Route diagnostics')).toBeVisible();
   await expect.poll(async () => overlay.evaluate((element) => element.shadowRoot?.textContent ?? ''))
-    .toContain('Label only');
+    .toContain('Route captured');
   await expect.poll(async () => untouchedOverlayHost.evaluate((element) => element.shadowRoot?.textContent ?? ''))
     .toContain('Awaiting reload');
   const englishRegularViewport = page.viewportSize();
@@ -869,7 +899,8 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
 
   await popup.locator('#mode-live').click();
   await expect(popup.locator('#footer-status')).toHaveText('Switched: Live request');
-  await expect(popup.getByText('Route mismatch')).toBeVisible();
+  await expect(popup.locator('.route-model strong').last()).toHaveText('Route conflict');
+  await expect(popup.locator('.verdict-line b')).toHaveText('Route conflict');
   const adapterValue = popup.getByText('page_fetch+page_websocket');
   await expect(adapterValue).toBeVisible();
   await expect.poll(() => adapterValue.evaluate((element) => ({

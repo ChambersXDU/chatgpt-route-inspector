@@ -51,7 +51,19 @@ describe('stored turn migration', () => {
       sources: ['assistant_dom'],
       domModelSlug: 'gpt-5-6-pro'
     });
-    expect(turn).toMatchObject({ captureMode: 'reload', routeModel: null, modelLabel: 'gpt-5-6-pro', verdict: 'unknown' });
+    expect(turn).toMatchObject({ captureMode: 'reload', routeModel: 'gpt-5-6-pro', modelLabel: 'gpt-5-6-pro', verdict: 'unknown' });
+  });
+
+  it('infers reload mode from a plural conversation record URL', () => {
+    const turn = migrateStoredTurn({
+      ...legacyBase,
+      captureMode: undefined,
+      requestedModel: null,
+      sources: [],
+      pageUrl: 'https://chatgpt.com/backend-api/conversations/private-id',
+      responseModelSlug: 'gpt-5-6-pro'
+    });
+    expect(turn).toMatchObject({ captureMode: 'reload', routeModel: null, verdict: 'conflict' });
   });
 
   it('keeps WebSocket-enriched live sources during migration', () => {

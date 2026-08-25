@@ -13,7 +13,7 @@ const handoff = readFileSync(new URL('../fixtures/handoff-response.sse', import.
 const webSocketFrame = readFileSync(new URL('../fixtures/websocket-route-frame.json', import.meta.url), 'utf8');
 
 describe('request-to-route evidence pipeline', () => {
-  it('positively identifies Pro → mini from explicit live response fields', () => {
+  it('reports a route-field conflict when explicit live routing differs from the model label', () => {
     const fields = mergeRouteFields(parseConversationRequest(request), parseSseResponse(abnormal));
     const turn = createTurn({
       captureId: 'integration-mismatch', source: 'page_fetch', captureMode: 'live', phase: 'completed',
@@ -22,10 +22,10 @@ describe('request-to-route evidence pipeline', () => {
     });
     expect(turn).toMatchObject({
       requestedModel: 'gpt-5-6-pro',
-      routeModel: 'gpt-5-5-mini',
-      routeModelSources: ['resolved_model_slug', 'server_ste_metadata.model_slug'],
+      routeModel: null,
+      routeModelSources: ['resolved_model_slug', 'server_ste_metadata.model_slug', 'assistant.metadata.model_slug'],
       modelLabel: 'gpt-5-6-pro',
-      verdict: 'mismatch',
+      verdict: 'conflict',
       captureMode: 'live'
     });
     expect(JSON.stringify(turn)).not.toMatch(/SECRET_PROMPT|SECRET_ANSWER|confidence/i);
@@ -65,8 +65,8 @@ describe('request-to-route evidence pipeline', () => {
     expect(turns).toHaveLength(1);
     expect(turns[0]).toMatchObject({
       requestedModel: 'gpt-5-6-pro',
-      routeModel: 'gpt-5-5-mini',
-      verdict: 'mismatch',
+      routeModel: null,
+      verdict: 'conflict',
       phase: 'completed',
       sources: ['page_fetch', 'page_websocket'],
       durationMs: 5000
@@ -83,10 +83,10 @@ describe('request-to-route evidence pipeline', () => {
     });
     expect(turn).toMatchObject({
       requestedModel: null,
-      routeModel: 'gpt-5-5-mini',
-      routeModelSources: ['resolved_model_slug'],
+      routeModel: null,
+      routeModelSources: ['resolved_model_slug', 'assistant.metadata.model_slug'],
       modelLabel: 'gpt-5-6-pro',
-      verdict: 'unknown',
+      verdict: 'conflict',
       captureMode: 'reload'
     });
   });

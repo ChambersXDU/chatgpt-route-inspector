@@ -44,48 +44,62 @@ describe('assessRoute', () => {
     });
   });
 
-  it('does not pretend default_model_slug was the requested model', () => {
+  it('ignores default_model_slug completely', () => {
     const result = assessRoute({
       ...EMPTY_ROUTE_FIELDS,
       defaultModelSlug: 'gpt-5-6-pro',
       resolvedModelSlug: 'gpt-5-5-mini'
     });
     expect(result).toMatchObject({ verdict: 'unknown', routeModel: 'gpt-5-5-mini' });
-    expect(result.reasons.join(' ')).toContain('不参与路由判断');
+    expect(result.reasons.join(' ')).not.toContain('default');
+    expect(result.reasons.join(' ')).not.toContain('默认模型');
   });
 
-  it('keeps assistant.metadata.model_slug as a label instead of a route field', () => {
+  it('uses assistant.metadata.model_slug as the response route fallback', () => {
     const result = assessRoute({
       ...EMPTY_ROUTE_FIELDS,
       requestedModel: 'gpt-5-6-pro',
       responseModelSlug: 'gpt-5-6-pro'
     });
     expect(result).toMatchObject({
-      verdict: 'unknown',
-      routeModel: null,
-      routeModelSources: [],
+      verdict: 'normal',
+      routeModel: 'gpt-5-6-pro',
+      routeModelSources: ['assistant.metadata.model_slug'],
       modelLabel: 'gpt-5-6-pro',
       modelLabelSources: ['assistant.metadata.model_slug']
     });
   });
 
-  it('does not promote a reload assistant label into a response route', () => {
+  it('reports a mismatch when the requested model differs from the label fallback', () => {
+    const result = assessRoute({
+      ...EMPTY_ROUTE_FIELDS,
+      requestedModel: 'gpt-5-6-pro',
+      responseModelSlug: 'gpt-5-5-mini'
+    });
+    expect(result).toMatchObject({
+      verdict: 'mismatch',
+      routeModel: 'gpt-5-5-mini',
+      routeModelSources: ['assistant.metadata.model_slug']
+    });
+  });
+
+  it('uses a reload assistant label as the response route fallback', () => {
     const result = assessRoute({ ...EMPTY_ROUTE_FIELDS, responseModelSlug: 'gpt-5-5-mini' });
     expect(result).toMatchObject({
       verdict: 'unknown',
-      routeModel: null,
-      routeModelSources: [],
+      routeModel: 'gpt-5-5-mini',
+      routeModelSources: ['assistant.metadata.model_slug'],
       modelLabel: 'gpt-5-5-mini',
       modelLabelSources: ['assistant.metadata.model_slug']
     });
   });
 
-  it('keeps the rendered assistant model as a label after reload', () => {
+  it('uses the rendered assistant model as the response route fallback after reload', () => {
     const result = assessRoute({ ...EMPTY_ROUTE_FIELDS, domModelSlug: 'gpt-5-6-pro' });
     expect(result).toMatchObject({
       verdict: 'unknown',
-      routeModel: null,
-      routeModelSources: [],
+      routeModel: 'gpt-5-6-pro',
+      routeModelSources: ['assistant[data-message-model-slug]'],
       modelLabel: 'gpt-5-6-pro',
       modelLabelSources: ['assistant[data-message-model-slug]']
     });
@@ -107,7 +121,7 @@ describe('assessRoute', () => {
     });
   });
 
-  it('uses actual route fields when a Pro label accompanies an Instant route', () => {
+  it('reports a route-field conflict when an explicit route differs from the model label', () => {
     const result = assessRoute({
       ...EMPTY_ROUTE_FIELDS,
       requestedModel: 'gpt-5-6-pro',
@@ -116,11 +130,26 @@ describe('assessRoute', () => {
       serverModelSlug: 'gpt-5-5-instant'
     });
     expect(result).toMatchObject({
-      verdict: 'mismatch',
-      routeModel: 'gpt-5-5-instant',
-      routeModelSources: ['resolved_model_slug', 'server_ste_metadata.model_slug'],
+      verdict: 'conflict',
+      routeModel: null,
+      routeModelSources: ['resolved_model_slug', 'server_ste_metadata.model_slug', 'assistant.metadata.model_slug'],
       modelLabel: 'gpt-5-6-pro',
       modelLabelConflict: false
+    });
+  });
+
+  it('reports a route-field conflict even when the request matches the explicit route', () => {
+    const result = assessRoute({
+      ...EMPTY_ROUTE_FIELDS,
+      requestedModel: 'gpt-5-5-mini',
+      responseModelSlug: 'gpt-5-6-pro',
+      resolvedModelSlug: 'gpt-5-5-mini'
+    });
+    expect(result).toMatchObject({
+      verdict: 'conflict',
+      routeModel: null,
+      routeModelSources: ['resolved_model_slug', 'assistant.metadata.model_slug'],
+      modelLabel: 'gpt-5-6-pro'
     });
   });
 

@@ -12,6 +12,10 @@ function stringValue(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
+function identifier(value: unknown): string | null {
+  return stringValue(value) ?? stringValue(asRecord(value)?.id);
+}
+
 function booleanValue(value: unknown): boolean | null {
   return typeof value === 'boolean' ? value : null;
 }
@@ -159,18 +163,23 @@ function activeAssistant(
 export function parseConversationRecord(value: unknown): RouteFields[] {
   const root = asRecord(value);
   const mapping = asRecord(root?.mapping);
-  if (!mapping) return [];
+  const messages = Array.isArray(root?.messages) ? root.messages : null;
+  if (!mapping && !messages) return [];
 
   const nodes: ConversationNode[] = [];
   const nodesById = new Map<string, ConversationNode>();
-  for (const [key, rawNode] of Object.entries(mapping)) {
+  const rawNodes = mapping
+    ? Object.entries(mapping)
+    : (messages ?? []).map((message, index) => [String(index), message] as const);
+  for (const [key, rawNode] of rawNodes) {
     const node = asRecord(rawNode);
-    const message = asRecord(node?.message);
+    const nestedMessage = asRecord(node?.message);
+    const message = nestedMessage ?? node;
     const author = asRecord(message?.author);
     const parsed = {
       key,
       messageId: stringValue(message?.id) ?? key,
-      parentId: stringValue(node?.parent),
+      parentId: identifier(node?.parent) ?? identifier(message?.parent_id),
       role: stringValue(author?.role),
       fields: message ? messageFields(message) : { ...EMPTY_ROUTE_FIELDS }
     };
@@ -179,13 +188,16 @@ export function parseConversationRecord(value: unknown): RouteFields[] {
     nodesById.set(parsed.messageId, parsed);
   }
 
-  const currentNodeId = stringValue(root?.current_node);
+  const currentNodeId = identifier(root?.current_node);
   if (currentNodeId) {
     const assistant = activeAssistant(currentNodeId, nodesById);
     if (assistant) {
       const fields = fieldsForAssistant(assistant, nodesById);
       return hasModelEvidence(fields) ? [fields] : [];
     }
+    // A paginated older page can reference a current node that is not part of that page.
+    // It must not replace the current response with an older turn.
+    if (messages) return [];
   }
 
   const grouped = new Map<string, RouteFields>();

@@ -27,7 +27,7 @@ function safePageUrl(value: unknown): string | null {
     url.search = '';
     url.hash = '';
     url.pathname = redactConversationPathname(url.pathname)
-      .replace(/^\/backend-api\/conversation\/[^/]+/, '/backend-api/conversation/[redacted]');
+      .replace(/^\/backend-api\/(conversations?)\/[^/]+/, '/backend-api/$1/[redacted]');
     return url.toString();
   } catch {
     return null;

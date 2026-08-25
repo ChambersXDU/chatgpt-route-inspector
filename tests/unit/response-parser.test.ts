@@ -54,6 +54,50 @@ describe('response parsers', () => {
     expect(parseConversationRecord({ mapping: null })).toEqual([]);
   });
 
+  it('parses the current flat messages response used by the plural conversation endpoint', () => {
+    const results = parseConversationRecord({
+      current_node: { id: 'assistant-current' },
+      messages: [
+        {
+          id: 'user-current',
+          author: { role: 'user' },
+          metadata: {
+            resolved_model_slug: 'gpt-5-5-mini',
+            request_id: 'req-flat-current'
+          }
+        },
+        {
+          id: 'assistant-current',
+          parent_id: { id: 'user-current' },
+          author: { role: 'assistant' },
+          metadata: {
+            model_slug: 'gpt-5-6-pro',
+            request_id: 'req-flat-current'
+          }
+        }
+      ],
+      page_info: { start_cursor: 'cursor-current', has_previous_page: true }
+    });
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({
+      responseModelSlug: 'gpt-5-6-pro',
+      resolvedModelSlug: 'gpt-5-5-mini',
+      requestId: 'req-flat-current'
+    });
+  });
+
+  it('ignores an older paginated messages page that does not contain current_node', () => {
+    expect(parseConversationRecord({
+      current_node: 'assistant-current',
+      messages: [{
+        id: 'assistant-old',
+        author: { role: 'assistant' },
+        metadata: { model_slug: 'gpt-5-5-mini', request_id: 'req-flat-old' }
+      }],
+      page_info: { start_cursor: 'cursor-old', has_next_page: true }
+    })).toEqual([]);
+  });
+
   it('retains a user-turn route field without promoting its model_slug to an assistant label', () => {
     const [fields] = parseConversationRecord({
       mapping: {
