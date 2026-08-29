@@ -162,7 +162,7 @@ function render(): void {
     host = null;
     return;
   }
-  if (!host) {
+  if (!host?.isConnected) {
     host = document.createElement('div');
     host.id = 'chatgpt-route-inspector-root';
     document.documentElement.append(host);
@@ -327,7 +327,10 @@ chrome.runtime.onMessage.addListener((message: unknown) => {
   scheduleReloadDomScan();
 });
 
-const domObserver = new MutationObserver(scheduleReloadDomScan);
+const domObserver = new MutationObserver(() => {
+  if (state?.settings.overlayEnabled && !host?.isConnected) render();
+  scheduleReloadDomScan();
+});
 function observeDocument(): void {
   if (!document.documentElement) return;
   domObserver.observe(document.documentElement, {

@@ -946,3 +946,58 @@ test('keeps live and reload captures distinct and stores no chat text', async ()
   }, storageKey);
   expect(language).toBe('en');
 });
+
+test('restores a detached overlay host while respecting manual hide', async () => {
+  const page = await context.newPage();
+  await page.routeWebSocket('ws://127.0.0.1:43996/backend-api/ws', (socket) => {
+    socket.onMessage((message) => {
+      if (message === 'emit-route') socket.send(webSocketFrame);
+    });
+  });
+  await page.goto('http://127.0.0.1:43996/c/overlay-lifecycle');
+
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/ui/popup/index.html`);
+  await popup.locator('#mode-live').click();
+  await popup.locator('#overlay-show').click();
+
+  const overlay = page.locator('#chatgpt-route-inspector-root');
+  await expect(overlay).toHaveCount(1);
+
+  async function runLiveFixture(): Promise<void> {
+    const before = await worker.evaluate(async (key) => {
+      const current = (await chrome.storage.local.get(key))[key] as {
+        turns?: Array<{ captureMode?: string }>;
+      } | undefined;
+      return current?.turns?.filter((turn) => turn.captureMode === 'live').length ?? 0;
+    }, storageKey);
+    await page.locator('#done').evaluate((element) => { element.textContent = ''; });
+    await page.locator('#ask').click();
+    await expect(page.locator('#done')).toHaveText('data: [DONE]');
+    await expect.poll(() => worker.evaluate(async ({ key, previous }) => {
+      const current = (await chrome.storage.local.get(key))[key] as {
+        turns?: Array<{ captureMode?: string }>;
+      } | undefined;
+      return (current?.turns?.filter((turn) => turn.captureMode === 'live').length ?? 0) > previous;
+    }, { key: storageKey, previous: before })).toBe(true);
+  }
+
+  await popup.locator('#overlay-hide').click();
+  await expect(overlay).toHaveCount(0);
+  await runLiveFixture();
+  await expect(overlay).toHaveCount(0);
+
+  await popup.locator('#overlay-show').click();
+  await expect(overlay).toHaveCount(1);
+  const removed = await page.evaluate(() => {
+    const element = document.getElementById('chatgpt-route-inspector-root');
+    if (!element) return false;
+    element.remove();
+    return true;
+  });
+  expect(removed).toBe(true);
+
+  await expect(overlay).toHaveCount(1);
+  await runLiveFixture();
+  await expect(overlay).toHaveCount(1);
+});
