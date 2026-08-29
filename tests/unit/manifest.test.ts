@@ -26,7 +26,7 @@ describe('extension permissions', () => {
   it('uses one minimal manifest with no browser debugging permission', () => {
     const value = manifest();
     expect(value.manifest_version).toBe(3);
-    expect(value.version).toBe('1.0.3');
+    expect(value.version).toBe('1.0.5');
     expect(value.permissions).toEqual(['storage']);
     expect(value.permissions).not.toContain('activeTab');
     expect(value.permissions).not.toContain('debugger');

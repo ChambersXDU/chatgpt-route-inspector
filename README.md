@@ -58,7 +58,7 @@ ChatGPT Route Inspector 是一款适用于 Chromium 浏览器的 ChatGPT 模型�
 
 ### 手动安装发布包
 
-1. 下载并解压 [`chatgpt-route-inspector-1.0.3.zip`](https://github.com/Liu-Bot24/chatgpt-route-inspector/releases/download/v1.0.3/chatgpt-route-inspector-1.0.3.zip)。
+1. 下载并解压 [`chatgpt-route-inspector-1.0.5.zip`](https://github.com/Liu-Bot24/chatgpt-route-inspector/releases/download/v1.0.5/chatgpt-route-inspector-1.0.5.zip)。
 2. 打开 `chrome://extensions/`。
 3. 开启右上角的“开发者模式”。
 4. 点击“加载已解压的扩展程序”。
