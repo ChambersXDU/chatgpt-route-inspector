@@ -1,13 +1,70 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title data-i18n="options.documentTitle">Route Inspector · 设置</title><link rel="stylesheet" href="../shared/styles.css"></head>
-<body><div class="shell options-shell">
-  <header class="masthead"><div class="brand"><span class="brand-mark"></span><div class="brand-copy"><div class="brand-title-line"><h1 data-i18n="app.name">Route Inspector</h1><a class="author-link" href="https://blog.liu-qi.cn/tools/" target="_blank" rel="noopener noreferrer" data-i18n="app.author">Created by @liuqi</a></div><p data-i18n="options.subtitle">本地设置与数据管理</p></div></div><div class="masthead-controls"><div class="language-switch" role="group" aria-label="切换语言" data-i18n-aria-label="language.label"><button type="button" data-language="en" aria-pressed="false">EN</button><button type="button" data-language="zh" aria-pressed="true">中</button></div><span class="signal-pill live" data-i18n="options.localConfig">仅本地</span></div></header>
-  <section class="page-title"><div><h2 data-i18n="options.title">设置与隐私</h2></div></section>
-  <article class="panel"><header class="panel-head"><h3 data-i18n="options.general">常规</h3></header><div class="panel-body">
-    <div class="switch-row"><div class="switch-copy"><b data-i18n="options.auto">自动监听</b></div><input id="auto" class="switch" type="checkbox"></div>
-    <div class="form-grid" style="margin-top:16px"><div class="field"><label for="retention" data-i18n="options.retention">记录上限</label><input id="retention" type="number" min="10" max="500" step="10"></div><div class="field"><label for="ids" data-i18n="options.requestIds">导出请求 ID</label><select id="ids"><option value="false" data-i18n="options.redacted">默认脱敏</option><option value="true" data-i18n="options.fullIds">保留完整 ID</option></select></div></div>
-    <div class="toolbar" style="margin-top:18px"><button id="save" class="button primary" data-i18n="options.save">保存设置</button><button id="clear" class="button danger" data-i18n="options.clear">清空本地记录</button></div>
-  </div></article>
-  <div class="notice" style="margin-top:16px" data-i18n="options.notice">路由记录仅保存在本机；导出时请求 ID 默认脱敏。</div><div class="toast" id="toast"></div>
-</div><script src="index.js"></script></body></html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Route Inspector · 设置</title>
+  <link rel="stylesheet" href="../shared/styles.css">
+  <link rel="stylesheet" href="../shared/clean.css">
+</head>
+<body>
+<div class="shell options-shell">
+  <header class="masthead">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <div class="brand-copy">
+        <div class="brand-title-line"><h1>Route Inspector</h1></div>
+        <p>设置与数据管理</p>
+      </div>
+    </div>
+    <span class="signal-pill live">仅保存在本机</span>
+  </header>
+
+  <section class="page-title"><div><h2>设置</h2></div></section>
+
+  <article class="panel">
+    <header class="panel-head"><h3>常规</h3></header>
+    <div class="panel-body">
+      <div class="switch-row">
+        <div class="switch-copy"><b>自动监听</b><small>自动识别重新加载的对话和之后发送的新消息。</small></div>
+        <input id="auto" class="switch" type="checkbox">
+      </div>
+      <div class="switch-row">
+        <div class="switch-copy"><b>页面浮窗</b><small>在 ChatGPT 页面右下角显示路由信息；关闭后主页面更干净。</small></div>
+        <input id="overlay" class="switch" type="checkbox">
+      </div>
+      <div class="form-grid" style="margin-top:16px">
+        <div class="field">
+          <label for="retention">记录上限</label>
+          <input id="retention" type="number" min="10" max="500" step="10">
+        </div>
+        <div class="field">
+          <label for="ids">导出请求 ID</label>
+          <select id="ids">
+            <option value="false">默认脱敏</option>
+            <option value="true">保留完整 ID</option>
+          </select>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-top:18px">
+        <button id="save" class="button primary">保存设置</button>
+      </div>
+    </div>
+  </article>
+
+  <article class="panel" style="margin-top:16px">
+    <header class="panel-head"><h3>工具与数据</h3></header>
+    <div class="panel-body">
+      <div class="toolbar" style="justify-content:flex-start">
+        <button id="dashboard" class="button">打开诊断台</button>
+        <button id="clear" class="button danger">清空本地记录</button>
+      </div>
+    </div>
+  </article>
+
+  <div class="notice" style="margin-top:16px">路由记录仅保存在本机；请求 ID 导出时默认脱敏。界面固定使用中文。</div>
+  <div class="toast" id="toast"></div>
+</div>
+<script src="index.js"></script>
+</body>
+</html>
