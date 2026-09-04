@@ -17,7 +17,15 @@ async function pillText(page: Page): Promise<string | null> {
 }
 
 test('Tampermonkey keeps terminal STE routing when reload metadata only repeats the selected model', async ({ page }) => {
-  await page.setContent('<!doctype html><html><body><main>fixture</main></body></html>');
+  await page.route('https://chatgpt.com/**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<!doctype html><html><body><main>fixture</main></body></html>'
+    });
+  });
+  await page.goto('https://chatgpt.com/c/e2e-userscript');
+
   await page.evaluate(() => {
     const reloadRecord = {
       current_node: 'assistant-live-1',
