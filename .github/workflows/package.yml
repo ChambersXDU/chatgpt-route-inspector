@@ -1,0 +1,52 @@
+name: Install Packages
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Build installable extension and userscript
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build installers
+        run: npm run package
+      - name: Verify extension archive
+        run: unzip -t release/chatgpt-route-inspector-*.zip
+      - name: Verify Tampermonkey script
+        run: node --check release/chatgpt-route-inspector-*.user.js
+      - name: Show checksums
+        run: cat release/SHA256SUMS.txt
+      - name: Upload install packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: chatgpt-route-inspector-installers-${{ github.sha }}
+          path: release/*
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish tag assets to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" release/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" release/* --title "$GITHUB_REF_NAME" --generate-notes
+          fi
