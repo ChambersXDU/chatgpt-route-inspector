@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ChatGPT Route Inspector（油猴版）
 // @namespace    https://github.com/ChambersXDU/chatgpt-route-inspector
-// @version      1.0.6
+// @version      1.0.7
 // @description  自动显示当前 ChatGPT 实际路由模型；刷新已有对话或发送新消息后自动更新。
 // @author       ChambersXDU
 // @match        https://chatgpt.com/*
@@ -40,6 +40,10 @@
 
   function stringValue(value) {
     return typeof value === 'string' && value.length > 0 ? value : null;
+  }
+
+  function normalized(value) {
+    return stringValue(value)?.trim().toLowerCase() || null;
   }
 
   function identifier(value) {
@@ -108,7 +112,7 @@
       try {
         fields = walkForFields(JSON.parse(payload), fields);
       } catch {
-        // Streaming fragments are ignored until a complete event arrives.
+        // Ignore incomplete streaming fragments until a complete event arrives.
       }
     }
     return fields;
@@ -250,29 +254,34 @@
   }
 
   function modelLabel(model) {
-    if (!model) return '尚未捕获';
+    if (!model) return '—';
     return model
       .replace(/^gpt-/, 'GPT ')
       .replace(/-(\d)/g, '.$1')
       .replace(/-pro$/i, ' Pro')
+      .replace(/-thinking$/i, ' Thinking')
       .replace(/-mini$/i, ' mini')
+      .replace(/-instant$/i, ' Instant')
       .replace(/-sol$/i, ' Sol');
   }
 
   function routeReading(fields, trigger, phase) {
-    const explicit = [...new Set([fields.resolvedModelSlug, fields.serverModelSlug].filter(Boolean).map((value) => value.toLowerCase()))];
-    const labels = [...new Set([fields.responseModelSlug].filter(Boolean).map((value) => value.toLowerCase()))];
-    const conflict = explicit.length > 1 || (explicit.length === 1 && labels.some((value) => value !== explicit[0]));
-    const routeModel = conflict ? null : explicit[0] ?? labels[0] ?? null;
+    const explicit = [
+      fields.resolvedModelSlug ? { source: 'resolved_model_slug', model: normalized(fields.resolvedModelSlug) } : null,
+      fields.serverModelSlug ? { source: 'server_ste_metadata.model_slug', model: normalized(fields.serverModelSlug) } : null
+    ].filter(Boolean);
+    const explicitModels = [...new Set(explicit.map((item) => item.model).filter(Boolean))];
+    const conflict = explicitModels.length > 1;
+    const routeModel = conflict ? null : explicitModels[0] ?? null;
+    const requestedModel = normalized(fields.requestedModel);
+    const modelTag = normalized(fields.responseModelSlug);
     return {
       routeModel,
       conflict,
-      requestedModel: fields.requestedModel,
-      routeSources: [
-        ...(fields.resolvedModelSlug ? ['resolved_model_slug'] : []),
-        ...(fields.serverModelSlug ? ['server_ste_metadata.model_slug'] : []),
-        ...(!fields.resolvedModelSlug && !fields.serverModelSlug && fields.responseModelSlug ? ['assistant.metadata.model_slug'] : [])
-      ],
+      mismatch: Boolean(routeModel && requestedModel && routeModel !== requestedModel),
+      requestedModel,
+      modelTag,
+      routeSources: explicit.map((item) => item.source),
       trigger,
       phase,
       observedAt: new Date().toISOString()
@@ -285,17 +294,24 @@
   let panel = null;
   let modelValue = null;
   let metaValue = null;
+  let alertValue = null;
   let sourceValue = null;
   let requestValue = null;
+  let labelValue = null;
+
+  function visibleRouteLabel() {
+    if (!currentReading) return '尚未捕获';
+    if (currentReading.conflict) return '路由字段冲突';
+    const pending = ['requested', 'responding'].includes(currentReading.phase) && !currentReading.routeModel;
+    if (pending) return '正在获取…';
+    if (currentReading.routeModel) return modelLabel(currentReading.routeModel);
+    if (currentReading.modelTag) return '未验证';
+    return '尚未捕获';
+  }
 
   function render() {
     if (!pill) return;
-    const pending = currentReading && ['requested', 'responding'].includes(currentReading.phase) && !currentReading.routeModel && !currentReading.conflict;
-    const label = currentReading?.conflict
-      ? '路由字段冲突'
-      : pending
-        ? '正在获取…'
-        : modelLabel(currentReading?.routeModel ?? null);
+    const label = visibleRouteLabel();
     pill.textContent = `路由模型 · ${label}`;
     if (modelValue) modelValue.textContent = label;
     if (metaValue) {
@@ -303,8 +319,13 @@
         ? `${currentReading.trigger} · ${new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(currentReading.observedAt))}`
         : '刷新当前对话，或发送一条新消息后自动显示';
     }
+    if (alertValue) {
+      alertValue.textContent = currentReading?.mismatch ? '请求模型与服务器路由不一致' : '';
+      alertValue.hidden = !currentReading?.mismatch;
+    }
     if (sourceValue) sourceValue.textContent = currentReading?.routeSources.join(' + ') || '—';
-    if (requestValue) requestValue.textContent = currentReading?.requestedModel ? modelLabel(currentReading.requestedModel) : '—';
+    if (requestValue) requestValue.textContent = modelLabel(currentReading?.requestedModel ?? null);
+    if (labelValue) labelValue.textContent = modelLabel(currentReading?.modelTag ?? null);
   }
 
   function mountUi() {
@@ -321,21 +342,23 @@
       <style>
         :host{all:initial}.wrap{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#202123}
         button{font:500 12px/1.2 inherit;border:1px solid #dedede;background:#fff;color:#202123;border-radius:999px;padding:9px 12px;box-shadow:0 4px 18px rgba(0,0,0,.08);cursor:pointer}
-        button:hover{background:#f7f7f8}.panel{display:none;position:absolute;right:0;bottom:42px;width:300px;background:#fff;border:1px solid #e5e5e5;border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.12);padding:14px}
+        button:hover{background:#f7f7f8}.panel{display:none;position:absolute;right:0;bottom:42px;width:310px;background:#fff;border:1px solid #e5e5e5;border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.12);padding:14px}
         .panel.open{display:block}.label{font-size:11px;color:#777}.model{margin-top:6px;font-size:22px;font-weight:650;letter-spacing:-.02em;overflow-wrap:anywhere}.meta{margin-top:7px;font-size:11px;color:#777;line-height:1.45}
-        .rows{margin-top:12px;border-top:1px solid #eee}.row{display:grid;grid-template-columns:72px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:11px}.row span{color:#888}.row code{font:500 11px/1.4 inherit;overflow-wrap:anywhere}
-        .foot{margin-top:10px;color:#999;font-size:10px;line-height:1.4}
+        .alert{margin-top:10px;padding:8px 10px;border-radius:9px;background:#f5f5f5;font-size:11px;font-weight:600}.rows{margin-top:12px;border-top:1px solid #eee}.row{display:grid;grid-template-columns:76px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:11px}.row span{color:#888}.row code{font:500 11px/1.4 inherit;overflow-wrap:anywhere}
+        .foot{margin-top:10px;color:#999;font-size:10px;line-height:1.45}
       </style>
       <div class="wrap">
         <div class="panel" id="panel">
-          <div class="label">当前路由模型</div>
+          <div class="label">当前实际路由</div>
           <div class="model" id="model">尚未捕获</div>
           <div class="meta" id="meta">刷新当前对话，或发送一条新消息后自动显示</div>
+          <div class="alert" id="alert" hidden></div>
           <div class="rows">
-            <div class="row"><span>路由来源</span><code id="source">—</code></div>
             <div class="row"><span>请求模型</span><code id="request">—</code></div>
+            <div class="row"><span>模型标签</span><code id="label-value">—</code></div>
+            <div class="row"><span>路由来源</span><code id="source">—</code></div>
           </div>
-          <div class="foot">只读取 ChatGPT 页面中已有的路由字段，不根据回答内容猜测模型。</div>
+          <div class="foot">server_ste_metadata / resolved_model_slug 用作显式路由证据；assistant model_slug 仅作为模型标签，不再参与路由冲突判定。</div>
         </div>
         <button id="pill" type="button">路由模型 · 尚未捕获</button>
       </div>`;
@@ -343,8 +366,10 @@
     panel = shadow.querySelector('#panel');
     modelValue = shadow.querySelector('#model');
     metaValue = shadow.querySelector('#meta');
+    alertValue = shadow.querySelector('#alert');
     sourceValue = shadow.querySelector('#source');
     requestValue = shadow.querySelector('#request');
+    labelValue = shadow.querySelector('#label-value');
     pill.addEventListener('click', () => panel.classList.toggle('open'));
     document.documentElement.append(rootHost);
     render();
