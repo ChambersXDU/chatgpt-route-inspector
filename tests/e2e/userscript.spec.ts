@@ -66,6 +66,28 @@ test('Tampermonkey version follows reload and then trusts terminal STE routing f
   await page.addScriptTag({ content: await readFile(userscriptPath, 'utf8') });
   await expect.poll(() => pillText(page)).toBe('尚未捕获');
 
+  const indicatorStyle = await page.locator('[data-route-inspector-root="userscript"]').evaluate((host) => {
+    const pill = host.shadowRoot?.querySelector('#pill') as HTMLButtonElement | null;
+    if (!pill) return null;
+    const style = getComputedStyle(pill);
+    return {
+      right: (host as HTMLElement).style.right,
+      top: (host as HTMLElement).style.top,
+      fontSize: style.fontSize,
+      backgroundColor: style.backgroundColor,
+      borderTopStyle: style.borderTopStyle,
+      boxShadow: style.boxShadow
+    };
+  });
+  expect(indicatorStyle).toEqual({
+    right: '92px',
+    top: '56px',
+    fontSize: '11px',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
+    borderTopStyle: 'none',
+    boxShadow: 'none'
+  });
+
   await page.evaluate(() => {
     const capturedFetch = window.fetch;
     window.fetch = async function chatgptFetchWrapper(input, init) {
