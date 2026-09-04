@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ChatGPT Route Inspector（油猴版）
 // @namespace    https://github.com/ChambersXDU/chatgpt-route-inspector
-// @version      1.0.11
+// @version      1.0.12
 // @description  自动显示当前 ChatGPT 实际路由模型；刷新已有对话或发送新消息后自动更新。
 // @author       ChambersXDU
 // @match        https://chatgpt.com/*
@@ -23,6 +23,7 @@
   const MAX_RECORD_BYTES = 8 * 1024 * 1024;
   const MAX_STREAM_EVENT_BYTES = 1024 * 1024;
   const ROUTE_HOSTS = new Set(['chatgpt.com', 'chat.openai.com']);
+  const CAPTURE_STORAGE_PREFIX = 'chatgpt-route-inspector:capture:v1:';
 
   const emptyFields = () => ({
     requestedModel: null,
@@ -31,7 +32,8 @@
     resolvedModelSlug: null,
     serverModelSlug: null,
     requestId: null,
-    conversationId: null
+    conversationId: null,
+    messageId: null
   });
 
   function asRecord(value) {
@@ -84,12 +86,15 @@
 
     let result = accumulator;
     const metadata = asRecord(record.metadata);
+    const author = asRecord(record.author);
+    if (author?.role === 'assistant') {
+      result = mergeFields(result, { messageId: stringValue(record.id) });
+    }
     if (record.type === 'server_ste_metadata' && metadata) {
       result = mergeFields(result, extractMetadata(metadata, 'server'));
     } else {
       result = mergeFields(result, extractMetadata(record));
       if (metadata) {
-        const author = asRecord(record.author);
         result = mergeFields(result, extractMetadata(metadata, author?.role === 'assistant' ? 'assistant' : 'none'));
       }
     }
@@ -121,8 +126,9 @@
   function messageFields(message) {
     const author = asRecord(message?.author);
     const metadata = asRecord(message?.metadata);
-    if (!metadata) return emptyFields();
-    let fields = mergeFields(emptyFields(), extractMetadata(metadata, author?.role === 'assistant' ? 'assistant' : 'none'));
+    let fields = mergeFields(emptyFields(), { messageId: stringValue(message?.id) });
+    if (!metadata) return fields;
+    fields = mergeFields(fields, extractMetadata(metadata, author?.role === 'assistant' ? 'assistant' : 'none'));
     const nested = asRecord(metadata.server_ste_metadata);
     if (nested) fields = mergeFields(fields, extractMetadata(nested, 'server'));
     return fields;
@@ -266,26 +272,93 @@
   }
 
   function routeReading(fields, trigger, phase) {
-    const explicit = [
-      fields.resolvedModelSlug ? { source: 'resolved_model_slug', model: normalized(fields.resolvedModelSlug) } : null,
-      fields.serverModelSlug ? { source: 'server_ste_metadata.model_slug', model: normalized(fields.serverModelSlug) } : null
-    ].filter(Boolean);
-    const explicitModels = [...new Set(explicit.map((item) => item.model).filter(Boolean))];
-    const conflict = explicitModels.length > 1;
-    const routeModel = conflict ? null : explicitModels[0] ?? null;
+    const serverModel = normalized(fields.serverModelSlug);
+    const resolvedModel = normalized(fields.resolvedModelSlug);
+    const resolvedFallback = trigger === '新消息' ? resolvedModel : null;
+    const routeModel = serverModel ?? resolvedFallback;
     const requestedModel = normalized(fields.requestedModel);
     const modelTag = normalized(fields.responseModelSlug);
     return {
       routeModel,
-      conflict,
+      conflict: false,
       mismatch: Boolean(routeModel && requestedModel && routeModel !== requestedModel),
       requestedModel,
       modelTag,
-      routeSources: explicit.map((item) => item.source),
+      routeSources: serverModel
+        ? ['server_ste_metadata.model_slug']
+        : resolvedFallback
+          ? ['resolved_model_slug']
+          : [],
       trigger,
       phase,
-      observedAt: new Date().toISOString()
+      observedAt: new Date().toISOString(),
+      conversationId: stringValue(fields.conversationId),
+      requestId: stringValue(fields.requestId),
+      messageId: stringValue(fields.messageId)
     };
+  }
+
+  function captureStorageKey(conversationId) {
+    return `${CAPTURE_STORAGE_PREFIX}${conversationId}`;
+  }
+
+  function persistCapturedReading(reading) {
+    if (
+      reading.trigger !== '新消息' ||
+      reading.phase !== 'completed' ||
+      !reading.conversationId ||
+      !reading.routeModel ||
+      !reading.routeSources.includes('server_ste_metadata.model_slug')
+    ) return;
+    try {
+      sessionStorage.setItem(captureStorageKey(reading.conversationId), JSON.stringify(reading));
+    } catch {
+      // Storage may be unavailable in hardened browser contexts.
+    }
+  }
+
+  function restoreCapturedReading(fields, conversationId) {
+    const id = conversationId ?? stringValue(fields.conversationId);
+    if (!id) return null;
+    let raw;
+    try {
+      raw = sessionStorage.getItem(captureStorageKey(id));
+    } catch {
+      return null;
+    }
+    if (!raw) return null;
+    try {
+      const stored = asRecord(JSON.parse(raw));
+      const routeModel = normalized(stored?.routeModel);
+      const storedConversationId = stringValue(stored?.conversationId);
+      if (!routeModel || storedConversationId !== id) return null;
+
+      const currentMessageId = stringValue(fields.messageId);
+      const storedMessageId = stringValue(stored?.messageId);
+      const currentRequestId = stringValue(fields.requestId);
+      const storedRequestId = stringValue(stored?.requestId);
+      const sameMessage = Boolean(currentMessageId && storedMessageId && currentMessageId === storedMessageId);
+      const sameRequest = Boolean(currentRequestId && storedRequestId && currentRequestId === storedRequestId);
+      if (!sameMessage && !sameRequest) return null;
+
+      const requestedModel = normalized(stored?.requestedModel);
+      return {
+        routeModel,
+        conflict: false,
+        mismatch: Boolean(routeModel && requestedModel && routeModel !== requestedModel),
+        requestedModel,
+        modelTag: normalized(stored?.modelTag) ?? normalized(fields.responseModelSlug),
+        routeSources: ['server_ste_metadata.model_slug'],
+        trigger: '重新加载',
+        phase: 'completed',
+        observedAt: stringValue(stored?.observedAt) ?? new Date().toISOString(),
+        conversationId: id,
+        requestId: storedRequestId ?? currentRequestId,
+        messageId: storedMessageId ?? currentMessageId
+      };
+    } catch {
+      return null;
+    }
   }
 
   let currentReading = null;
@@ -301,11 +374,9 @@
 
   function visibleRouteLabel() {
     if (!currentReading) return '尚未捕获';
-    if (currentReading.conflict) return '路由字段冲突';
     const pending = ['requested', 'responding'].includes(currentReading.phase) && !currentReading.routeModel;
     if (pending) return '正在获取…';
     if (currentReading.routeModel) return modelLabel(currentReading.routeModel);
-    if (currentReading.modelTag) return '未验证';
     return '尚未捕获';
   }
 
@@ -317,7 +388,7 @@
     if (metaValue) {
       metaValue.textContent = currentReading
         ? `${currentReading.trigger} · ${new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(currentReading.observedAt))}`
-        : '刷新当前对话，或发送一条新消息后自动显示';
+        : '发送一条新消息后自动显示';
     }
     if (alertValue) {
       alertValue.textContent = currentReading?.mismatch ? '请求模型与服务器路由不一致' : '';
@@ -350,7 +421,7 @@
         <div class="panel" id="panel">
           <div class="label">当前实际路由</div>
           <div class="model" id="model">尚未捕获</div>
-          <div class="meta" id="meta">刷新当前对话，或发送一条新消息后自动显示</div>
+          <div class="meta" id="meta">发送一条新消息后自动显示</div>
           <div class="alert" id="alert" hidden></div>
           <div class="rows">
             <div class="row"><span>请求模型</span><code id="request">—</code></div>
@@ -373,10 +444,16 @@
     render();
   }
 
-  function update(fields, trigger, phase) {
-    currentReading = routeReading(fields, trigger, phase);
+  function setCurrentReading(reading) {
+    currentReading = reading;
     mountUi();
     render();
+  }
+
+  function update(fields, trigger, phase) {
+    const reading = routeReading(fields, trigger, phase);
+    persistCapturedReading(reading);
+    setCurrentReading(reading);
   }
 
   async function parseLiveStream(response, baseFields) {
@@ -418,8 +495,22 @@
     if (raw.length > MAX_RECORD_BYTES) return;
     const parsed = parseResponseText(raw).filter(hasModelEvidence);
     const fields = parsed.at(-1);
-    if (!fields) return;
-    update(mergeFields(fields, { conversationId: conversationId ?? fields.conversationId }), '重新加载', 'completed');
+    if (!fields) {
+      setCurrentReading(null);
+      return;
+    }
+    const merged = mergeFields(fields, { conversationId: conversationId ?? fields.conversationId });
+
+    // A server STE embedded in the record is strong enough to stand on its own.
+    if (merged.serverModelSlug) {
+      update(merged, '重新加载', 'completed');
+      return;
+    }
+
+    // Otherwise only restore a live capture when the latest assistant message/request matches.
+    // resolved_model_slug and assistant model_slug from a reload record do not overwrite it.
+    const restored = restoreCapturedReading(merged, conversationId);
+    setCurrentReading(restored);
   }
 
   async function inspectFetch(downstream, receiver, input, init) {
