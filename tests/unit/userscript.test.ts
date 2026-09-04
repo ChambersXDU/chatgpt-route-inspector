@@ -36,7 +36,7 @@ describe('Tampermonkey installer', () => {
     const source = await userscript();
     expect(source).toContain("source: 'resolved_model_slug'");
     expect(source).toContain("source: 'server_ste_metadata.model_slug'");
-    expect(source).toContain('modelTag: normalized(fields.responseModelSlug)');
+    expect(source).toContain('const modelTag = normalized(fields.responseModelSlug)');
     expect(source).toContain('explicitModels.length > 1');
     expect(source).toContain('请求模型与服务器路由不一致');
     expect(source).toContain('assistant model_slug 仅作为模型标签');
