@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ChatGPT Route Inspector（油猴版）
 // @namespace    https://github.com/ChambersXDU/chatgpt-route-inspector
-// @version      1.0.7
+// @version      1.0.8
 // @description  自动显示当前 ChatGPT 实际路由模型；刷新已有对话或发送新消息后自动更新。
 // @author       ChambersXDU
 // @match        https://chatgpt.com/*
@@ -336,16 +336,15 @@
     }
     rootHost = document.createElement('div');
     rootHost.dataset.routeInspectorRoot = 'userscript';
-    rootHost.style.cssText = 'all:initial;position:fixed;right:18px;bottom:18px;z-index:2147483647;';
+    rootHost.style.cssText = 'all:initial;position:fixed;right:18px;top:32vh;z-index:2147483647;';
     const shadow = rootHost.attachShadow({ mode: 'open' });
     shadow.innerHTML = `
       <style>
         :host{all:initial}.wrap{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#202123}
         button{font:500 12px/1.2 inherit;border:1px solid #dedede;background:#fff;color:#202123;border-radius:999px;padding:9px 12px;box-shadow:0 4px 18px rgba(0,0,0,.08);cursor:pointer}
-        button:hover{background:#f7f7f8}.panel{display:none;position:absolute;right:0;bottom:42px;width:310px;background:#fff;border:1px solid #e5e5e5;border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.12);padding:14px}
+        button:hover{background:#f7f7f8}.panel{display:none;position:absolute;right:0;top:42px;width:310px;background:#fff;border:1px solid #e5e5e5;border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.12);padding:14px}
         .panel.open{display:block}.label{font-size:11px;color:#777}.model{margin-top:6px;font-size:22px;font-weight:650;letter-spacing:-.02em;overflow-wrap:anywhere}.meta{margin-top:7px;font-size:11px;color:#777;line-height:1.45}
         .alert{margin-top:10px;padding:8px 10px;border-radius:9px;background:#f5f5f5;font-size:11px;font-weight:600}.rows{margin-top:12px;border-top:1px solid #eee}.row{display:grid;grid-template-columns:76px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:11px}.row span{color:#888}.row code{font:500 11px/1.4 inherit;overflow-wrap:anywhere}
-        .foot{margin-top:10px;color:#999;font-size:10px;line-height:1.45}
       </style>
       <div class="wrap">
         <div class="panel" id="panel">
@@ -358,7 +357,6 @@
             <div class="row"><span>模型标签</span><code id="label-value">—</code></div>
             <div class="row"><span>路由来源</span><code id="source">—</code></div>
           </div>
-          <div class="foot">server_ste_metadata / resolved_model_slug 用作显式路由证据；assistant model_slug 仅作为模型标签，不再参与路由冲突判定。</div>
         </div>
         <button id="pill" type="button">路由模型 · 尚未捕获</button>
       </div>`;
