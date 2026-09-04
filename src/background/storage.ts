@@ -1,5 +1,4 @@
 import { DEFAULT_SETTINGS, normalizeOverlayMode, type InspectorState, type PowObservation, type RouteObservation } from '../core/types';
-import { browserUiLanguage, normalizeUiLanguage } from '../core/language';
 import { migrateStoredTurn } from '../core/migration';
 import { normalizePowObservation, upsertPowReading } from '../core/pow';
 import { upsertTurn } from '../core/turns';
@@ -11,7 +10,7 @@ export function defaultState(): InspectorState {
   return {
     turns: [],
     powReadings: [],
-    settings: { ...DEFAULT_SETTINGS, uiLanguage: browserUiLanguage() },
+    settings: { ...DEFAULT_SETTINGS, uiLanguage: 'zh' },
     parserHealth: { lastSuccessAt: null, lastFailureAt: null, consecutiveFailures: 0 }
   };
 }
@@ -29,7 +28,6 @@ export async function readState(): Promise<InspectorState> {
       .filter((reading): reading is NonNullable<typeof reading> => reading !== null)
     : [];
   const captureMode = candidate.settings?.captureMode === 'reload' ? 'reload' : 'live';
-  const uiLanguage = normalizeUiLanguage(candidate.settings?.uiLanguage) ?? browserUiLanguage();
   const overlayMode = normalizeOverlayMode(candidate.settings?.overlayMode, candidate.settings?.overlayMinimized);
   return {
     turns,
@@ -38,7 +36,7 @@ export async function readState(): Promise<InspectorState> {
       ...DEFAULT_SETTINGS,
       ...candidate.settings,
       captureMode,
-      uiLanguage,
+      uiLanguage: 'zh',
       overlayMode,
       overlayMinimized: overlayMode !== 'full'
     },
