@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ChatGPT Route Inspector（油猴版）
 // @namespace    https://github.com/ChambersXDU/chatgpt-route-inspector
-// @version      1.0.12
+// @version      1.0.13
 // @description  自动显示当前 ChatGPT 实际路由模型；刷新已有对话或发送新消息后自动更新。
 // @author       ChambersXDU
 // @match        https://chatgpt.com/*
@@ -373,22 +373,21 @@
   let labelValue = null;
 
   function visibleRouteLabel() {
-    if (!currentReading) return '尚未捕获';
-    const pending = ['requested', 'responding'].includes(currentReading.phase) && !currentReading.routeModel;
-    if (pending) return '正在获取…';
-    if (currentReading.routeModel) return modelLabel(currentReading.routeModel);
-    return '尚未捕获';
+    if (!currentReading?.routeModel) return null;
+    return modelLabel(currentReading.routeModel);
   }
 
   function render() {
     if (!pill) return;
     const label = visibleRouteLabel();
-    pill.textContent = label;
-    if (modelValue) modelValue.textContent = label;
+    pill.hidden = !label;
+    pill.textContent = label ?? '';
+    if (!label) panel?.classList.remove('open');
+    if (modelValue) modelValue.textContent = label ?? '—';
     if (metaValue) {
       metaValue.textContent = currentReading
         ? `${currentReading.trigger} · ${new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(currentReading.observedAt))}`
-        : '发送一条新消息后自动显示';
+        : '';
     }
     if (alertValue) {
       alertValue.textContent = currentReading?.mismatch ? '请求模型与服务器路由不一致' : '';
@@ -407,7 +406,7 @@
     }
     rootHost = document.createElement('div');
     rootHost.dataset.routeInspectorRoot = 'userscript';
-    rootHost.style.cssText = 'all:initial;position:fixed;right:92px;top:56px;z-index:2147483647;';
+    rootHost.style.cssText = 'all:initial;position:fixed;right:56px;top:56px;z-index:2147483647;';
     const shadow = rootHost.attachShadow({ mode: 'open' });
     shadow.innerHTML = `
       <style>
@@ -420,8 +419,8 @@
       <div class="wrap">
         <div class="panel" id="panel">
           <div class="label">当前实际路由</div>
-          <div class="model" id="model">尚未捕获</div>
-          <div class="meta" id="meta">发送一条新消息后自动显示</div>
+          <div class="model" id="model">—</div>
+          <div class="meta" id="meta"></div>
           <div class="alert" id="alert" hidden></div>
           <div class="rows">
             <div class="row"><span>请求模型</span><code id="request">—</code></div>
@@ -429,7 +428,7 @@
             <div class="row"><span>路由来源</span><code id="source">—</code></div>
           </div>
         </div>
-        <button id="pill" type="button">尚未捕获</button>
+        <button id="pill" type="button" hidden></button>
       </div>`;
     pill = shadow.querySelector('#pill');
     panel = shadow.querySelector('#panel');
