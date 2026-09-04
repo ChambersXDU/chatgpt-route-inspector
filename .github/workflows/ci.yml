@@ -27,12 +27,13 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      - run: node --check userscript/chatgpt-route-inspector.user.js
       - run: npm run test:unit
       - run: npm run test:integration
       - run: npm run build
 
   browser-smoke:
-    name: Chromium extension smoke
+    name: Chromium extension and userscript smoke
     needs: quality
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -45,7 +46,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run build:e2e
-      - run: xvfb-run -a npx playwright test tests/e2e/smoke.spec.ts
+      - run: xvfb-run -a npx playwright test tests/e2e/smoke.spec.ts tests/e2e/userscript.spec.ts
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4
