@@ -10,6 +10,19 @@ export default tseslint.config(
     languageOptions: { globals: { process: 'readonly' } }
   },
   {
+    files: ['userscript/**/*.user.js'],
+    languageOptions: {
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        URL: 'readonly',
+        location: 'readonly',
+        Request: 'readonly',
+        TextDecoder: 'readonly'
+      }
+    }
+  },
+  {
     files: ['**/*.ts'],
     rules: {
       '@typescript-eslint/consistent-type-imports': 'error',
