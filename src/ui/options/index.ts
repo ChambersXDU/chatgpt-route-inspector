@@ -1,6 +1,5 @@
 import type { InspectorState } from '../../core/types';
 import { getState, send, subscribe } from '../shared/client';
-import { applyStaticTranslations, bindLanguageSwitch, t } from '../shared/i18n';
 
 let state: InspectorState;
 
@@ -17,18 +16,13 @@ function toast(message: string): void {
 
 function render(next: InspectorState, syncControls = false): void {
   state = next;
-  applyStaticTranslations(state.settings.uiLanguage);
+  document.documentElement.lang = 'zh-CN';
   if (!syncControls) return;
   input<HTMLInputElement>('#auto').checked = state.settings.autoCaptureEnabled;
+  input<HTMLInputElement>('#overlay').checked = state.settings.overlayEnabled;
   input<HTMLInputElement>('#retention').value = String(state.settings.retentionLimit);
   input<HTMLSelectElement>('#ids').value = String(state.settings.includeRequestIdsInExport);
 }
-
-bindLanguageSwitch(async (uiLanguage) => {
-  if (state?.settings.uiLanguage === uiLanguage) return;
-  const response = await send({ type: 'route:update-settings', settings: { uiLanguage } });
-  if (response.state) render(response.state);
-});
 
 input<HTMLButtonElement>('#save').addEventListener('click', async () => {
   const retentionLimit = Math.max(10, Math.min(500, Number(input<HTMLInputElement>('#retention').value) || 100));
@@ -36,19 +30,22 @@ input<HTMLButtonElement>('#save').addEventListener('click', async () => {
     type: 'route:update-settings',
     settings: {
       autoCaptureEnabled: input<HTMLInputElement>('#auto').checked,
+      overlayEnabled: input<HTMLInputElement>('#overlay').checked,
       retentionLimit,
       includeRequestIdsInExport: input<HTMLSelectElement>('#ids').value === 'true'
     }
   });
   if (response.state) render(response.state, true);
-  toast(t(state.settings.uiLanguage, 'toast.settingsSaved'));
+  toast('设置已保存。');
 });
 
+input<HTMLButtonElement>('#dashboard').addEventListener('click', () => void send({ type: 'route:open-dashboard' }));
+
 input<HTMLButtonElement>('#clear').addEventListener('click', async () => {
-  if (!confirm(t(state.settings.uiLanguage, 'confirm.clearAll'))) return;
+  if (!confirm('清空全部本地路由记录？此操作无法撤销。')) return;
   const response = await send({ type: 'route:clear' });
   if (response.state) render(response.state, true);
-  toast(t(state.settings.uiLanguage, 'toast.cleared'));
+  toast('本地记录已清空。');
 });
 
 void getState().then((initial) => {
