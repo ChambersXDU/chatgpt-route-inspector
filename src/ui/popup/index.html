@@ -3,67 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title data-i18n="popup.title">Route Inspector</title>
+  <title>Route Inspector</title>
   <link rel="stylesheet" href="../shared/styles.css">
+  <link rel="stylesheet" href="../shared/clean.css">
 </head>
 <body class="popup-shell">
   <header class="masthead">
     <div class="brand">
       <span class="brand-mark"></span>
       <div class="brand-copy">
-        <div class="brand-title-line">
-          <h1 data-i18n="app.name">Route Inspector</h1>
-          <a class="author-link" href="https://blog.liu-qi.cn/tools/" target="_blank" rel="noopener noreferrer" data-i18n="app.author">Created by @liuqi</a>
-        </div>
-        <p data-i18n="popup.subtitle">服务器报告的路由遥测</p>
+        <div class="brand-title-line"><h1>Route Inspector</h1></div>
+        <p>当前实际路由模型</p>
       </div>
     </div>
-    <div class="masthead-controls">
-      <div class="language-switch" role="group" aria-label="切换语言" data-i18n-aria-label="language.label">
-        <button type="button" data-language="en" aria-pressed="false">EN</button>
-        <button type="button" data-language="zh" aria-pressed="true">中</button>
-      </div>
-      <span id="capture-status" class="signal-pill" data-i18n="status.idle">待机</span>
-    </div>
+    <span id="capture-status" class="signal-pill live">自动识别</span>
   </header>
-  <main class="popup-content">
-    <div class="popup-control-grid">
-      <section class="capture-console" aria-label="捕获模式" data-i18n-aria-label="capture.section">
-        <div class="mode-selector" role="group" aria-label="选择捕获模式" data-i18n-aria-label="capture.select">
-          <button id="mode-live" data-mode="live" type="button"><span>01</span><b data-i18n="mode.live">实时请求</b></button>
-          <button id="mode-reload" data-mode="reload" type="button"><span>02</span><b data-i18n="mode.reload">会话重载</b></button>
-        </div>
-        <p id="mode-hint" class="mode-hint"></p>
-      </section>
-      <section class="capture-console overlay-console" aria-label="页面浮窗" data-i18n-aria-label="overlay.section">
-        <div class="console-label"><span data-i18n="overlay.label">页面浮窗</span><small id="overlay-state">已显示</small></div>
-        <div class="mode-selector" role="group" aria-label="控制页面浮窗" data-i18n-aria-label="overlay.controls">
-          <button id="overlay-show" data-overlay="show" type="button"><span>ON</span><b data-i18n="overlay.show">显示浮窗</b></button>
-          <button id="overlay-hide" data-overlay="hide" type="button"><span>OFF</span><b data-i18n="overlay.hide">隐藏浮窗</b></button>
-        </div>
-      </section>
-    </div>
-    <div class="popup-result-grid">
-      <section class="hero-readout" id="hero"></section>
-      <section class="metric-grid" id="metrics"></section>
-    </div>
-    <div class="button-stack">
-      <button class="button primary" id="dashboard" data-i18n="button.openDashboard">打开诊断台</button>
-      <button class="button" id="copy" data-i18n="button.copySummary">复制本轮摘要</button>
-      <button class="button wide" id="options" data-i18n="button.options">设置与隐私</button>
-    </div>
-    <section class="pow-readout" aria-live="polite">
-      <strong data-i18n="pow.inline">PoW 难度</strong>
-      <span data-i18n="pow.hex">十六进制</span><code id="pow-hex">未捕获</code>
-      <i>|</i>
-      <span data-i18n="pow.decimal">十进制</span><code id="pow-decimal">—</code>
-      <small data-i18n="pow.recommendation">（建议保持十进制五位数以上）</small>
+
+  <main class="popup-content simple-popup">
+    <section class="current-card" aria-live="polite">
+      <div class="current-label">当前路由模型</div>
+      <div id="current-model" class="current-model">正在读取…</div>
+      <div id="current-meta" class="current-meta">刷新对话或发送一条消息后会自动更新</div>
     </section>
+
+    <details class="advanced-disclosure" id="advanced">
+      <summary>高级信息</summary>
+      <div id="advanced-content" class="advanced-content"></div>
+    </details>
+
+    <div class="popup-actions">
+      <button class="button" id="options" type="button">设置</button>
+    </div>
   </main>
-  <footer class="footer-link">
-    <span id="footer-machine" class="footer-machine" data-tone="idle"><i></i><span id="footer-status" data-i18n="status.idle">待机</span></span>
-    <span id="record-count">0 条记录</span>
-  </footer>
+
   <script src="index.js"></script>
 </body>
 </html>
