@@ -14,6 +14,7 @@ describe('Tampermonkey installer', () => {
   it('has installable metadata for ChatGPT and page-context interception', async () => {
     const source = await userscript();
     expect(source.startsWith('// ==UserScript==')).toBe(true);
+    expect(source).toContain('// @version      1.0.7');
     expect(source).toContain('// @match        https://chatgpt.com/*');
     expect(source).toContain('// @match        https://chat.openai.com/*');
     expect(source).toContain('// @run-at       document-start');
@@ -31,21 +32,22 @@ describe('Tampermonkey installer', () => {
     expect(source).not.toContain('mode-reload');
   });
 
-  it('prioritizes explicit route fields and keeps label fallback visible', async () => {
+  it('uses explicit route fields for routing and keeps assistant model_slug as a label only', async () => {
     const source = await userscript();
-    expect(source).toContain('fields.resolvedModelSlug');
-    expect(source).toContain('fields.serverModelSlug');
-    expect(source).toContain('fields.responseModelSlug');
-    expect(source).toContain('路由字段冲突');
-    expect(source).toContain('resolved_model_slug');
-    expect(source).toContain('server_ste_metadata.model_slug');
+    expect(source).toContain("source: 'resolved_model_slug'");
+    expect(source).toContain("source: 'server_ste_metadata.model_slug'");
+    expect(source).toContain('modelTag: normalized(fields.responseModelSlug)');
+    expect(source).toContain('explicitModels.length > 1');
+    expect(source).toContain('请求模型与服务器路由不一致');
+    expect(source).toContain('assistant model_slug 仅作为模型标签');
   });
 
   it('stays visually small and Chinese-first', async () => {
     const source = await userscript();
     expect(source).toContain('路由模型 · 尚未捕获');
-    expect(source).toContain('当前路由模型');
-    expect(source).toContain('只读取 ChatGPT 页面中已有的路由字段');
+    expect(source).toContain('当前实际路由');
+    expect(source).toContain('请求模型');
+    expect(source).toContain('模型标签');
     expect(source).not.toContain('Language');
   });
 });
