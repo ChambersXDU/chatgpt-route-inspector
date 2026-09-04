@@ -61,6 +61,17 @@ test('Tampermonkey version follows reload and then the newest live message autom
   await page.addScriptTag({ content: await readFile(userscriptPath, 'utf8') });
   await expect.poll(() => pillText(page)).toBe('路由模型 · 尚未捕获');
 
+  await page.evaluate(() => {
+    const capturedFetch = window.fetch;
+    window.fetch = async function chatgptFetchWrapper(input, init) {
+      return capturedFetch.call(this, input, init);
+    };
+  });
+  await expect(page.evaluate(async () => {
+    const response = await window.fetch('https://chatgpt.com/backend-api/subscription');
+    return response.text();
+  })).resolves.toBe('ok');
+
   await page.evaluate(() => window.fetch('https://chatgpt.com/backend-api/conversation/e2e-userscript'));
   await expect.poll(() => pillText(page)).toBe('路由模型 · GPT 5.5');
 
