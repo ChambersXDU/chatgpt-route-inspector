@@ -14,7 +14,7 @@ describe('Tampermonkey installer', () => {
   it('has installable metadata for ChatGPT and page-context interception', async () => {
     const source = await userscript();
     expect(source.startsWith('// ==UserScript==')).toBe(true);
-    expect(source).toContain('// @version      1.0.7');
+    expect(source).toContain('// @version      1.0.8');
     expect(source).toContain('// @match        https://chatgpt.com/*');
     expect(source).toContain('// @match        https://chat.openai.com/*');
     expect(source).toContain('// @run-at       document-start');
@@ -39,15 +39,18 @@ describe('Tampermonkey installer', () => {
     expect(source).toContain('const modelTag = normalized(fields.responseModelSlug)');
     expect(source).toContain('explicitModels.length > 1');
     expect(source).toContain('请求模型与服务器路由不一致');
-    expect(source).toContain('assistant model_slug 仅作为模型标签');
   });
 
-  it('stays visually small and Chinese-first', async () => {
+  it('stays visually small, quiet and away from the composer', async () => {
     const source = await userscript();
     expect(source).toContain('路由模型 · 尚未捕获');
     expect(source).toContain('当前实际路由');
     expect(source).toContain('请求模型');
     expect(source).toContain('模型标签');
+    expect(source).toContain('right:18px;top:32vh;');
+    expect(source).toContain('right:0;top:42px;');
+    expect(source).not.toContain('用作显式路由证据');
+    expect(source).not.toContain('.foot{');
     expect(source).not.toContain('Language');
   });
 });
