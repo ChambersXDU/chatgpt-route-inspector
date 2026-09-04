@@ -18,7 +18,8 @@ export default tseslint.config(
         URL: 'readonly',
         location: 'readonly',
         Request: 'readonly',
-        TextDecoder: 'readonly'
+        TextDecoder: 'readonly',
+        sessionStorage: 'readonly'
       }
     }
   },
