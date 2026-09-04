@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ChatGPT Route Inspector（油猴版）
 // @namespace    https://github.com/ChambersXDU/chatgpt-route-inspector
-// @version      1.0.5
+// @version      1.0.6
 // @description  自动显示当前 ChatGPT 实际路由模型；刷新已有对话或发送新消息后自动更新。
 // @author       ChambersXDU
 // @match        https://chatgpt.com/*
@@ -420,33 +420,61 @@
     return response;
   }
 
-  let downstreamFetch = nativeFetch;
-  const routeFetch = async function routeInspectorFetch(input, init) {
-    return inspectFetch(downstreamFetch, this, input, init);
-  };
+  function createFetchGeneration(downstream, capturesRawResponse) {
+    const generation = {
+      capturesRawResponse,
+      downstream,
+      wrapper: nativeFetch
+    };
+    generation.wrapper = async function routeInspectorFetch(input, init) {
+      const receiver = this ?? window;
+      if (generation.capturesRawResponse) {
+        return inspectFetch(generation.downstream, receiver, input, init);
+      }
+      return generation.downstream.call(receiver, input, init);
+    };
+    return generation;
+  }
+
+  let currentFetchGeneration = createFetchGeneration(nativeFetch, true);
+
+  function adoptDownstreamFetch(candidate) {
+    if (typeof candidate !== 'function' || candidate === currentFetchGeneration.wrapper) return;
+    currentFetchGeneration = createFetchGeneration(candidate, candidate === nativeFetch);
+  }
+
+  function routeFetchGetter() {
+    return currentFetchGeneration.wrapper;
+  }
+
+  function routeFetchSetter(candidate) {
+    adoptDownstreamFetch(candidate);
+  }
 
   function installFetchHook() {
     try {
       const descriptor = Object.getOwnPropertyDescriptor(window, 'fetch');
-      const candidate = window.fetch;
-      if (candidate !== routeFetch && typeof candidate === 'function') downstreamFetch = candidate;
-      Object.defineProperty(window, 'fetch', {
-        configurable: true,
-        enumerable: descriptor?.enumerable ?? true,
-        get: () => routeFetch,
-        set: (next) => {
-          if (typeof next === 'function' && next !== routeFetch) downstreamFetch = next;
-        }
-      });
+      if (descriptor?.get === routeFetchGetter && descriptor.set === routeFetchSetter) return;
+      adoptDownstreamFetch(window.fetch);
+      try {
+        Object.defineProperty(window, 'fetch', {
+          configurable: true,
+          enumerable: descriptor?.enumerable ?? true,
+          get: routeFetchGetter,
+          set: routeFetchSetter
+        });
+      } catch {
+        window.fetch = currentFetchGeneration.wrapper;
+      }
     } catch {
-      window.fetch = routeFetch;
+      // A frozen or hostile fetch property should not break ChatGPT itself.
     }
   }
 
   installFetchHook();
   mountUi();
   window.setInterval(() => {
-    if (window.fetch !== routeFetch) installFetchHook();
+    installFetchHook();
     if (!rootHost?.isConnected) mountUi();
   }, 2000);
 })();
