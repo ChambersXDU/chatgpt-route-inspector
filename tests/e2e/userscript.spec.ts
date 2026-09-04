@@ -64,7 +64,7 @@ test('Tampermonkey version follows reload and then trusts terminal STE routing f
   });
 
   await page.addScriptTag({ content: await readFile(userscriptPath, 'utf8') });
-  await expect.poll(() => pillText(page)).toBe('路由模型 · 尚未捕获');
+  await expect.poll(() => pillText(page)).toBe('尚未捕获');
 
   await page.evaluate(() => {
     const capturedFetch = window.fetch;
@@ -78,7 +78,7 @@ test('Tampermonkey version follows reload and then trusts terminal STE routing f
   })).resolves.toBe('ok');
 
   await page.evaluate(() => window.fetch('https://chatgpt.com/backend-api/conversation/e2e-userscript'));
-  await expect.poll(() => pillText(page)).toBe('路由模型 · GPT 5.5');
+  await expect.poll(() => pillText(page)).toBe('GPT 5.5');
 
   const live = page.evaluate(() => window.fetch('https://chatgpt.com/backend-api/f/conversation', {
     method: 'POST',
@@ -87,7 +87,7 @@ test('Tampermonkey version follows reload and then trusts terminal STE routing f
   }));
   await expect.poll(() => pillText(page)).toMatch(/正在获取|GPT 5\.5 mini/);
   await live;
-  await expect.poll(() => pillText(page)).toBe('路由模型 · GPT 5.5 mini');
+  await expect.poll(() => pillText(page)).toBe('GPT 5.5 mini');
 
   await page.locator('[data-route-inspector-root="userscript"]').evaluate((host) =>
     (host.shadowRoot?.querySelector('#pill') as HTMLButtonElement | null)?.click());
