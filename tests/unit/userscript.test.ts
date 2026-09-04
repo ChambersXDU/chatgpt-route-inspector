@@ -14,7 +14,7 @@ describe('Tampermonkey installer', () => {
   it('has installable metadata for ChatGPT and page-context interception', async () => {
     const source = await userscript();
     expect(source.startsWith('// ==UserScript==')).toBe(true);
-    expect(source).toContain('// @version      1.0.12');
+    expect(source).toContain('// @version      1.0.13');
     expect(source).toContain('// @match        https://chatgpt.com/*');
     expect(source).toContain('// @match        https://chat.openai.com/*');
     expect(source).toContain('// @run-at       document-start');
@@ -46,15 +46,19 @@ describe('Tampermonkey installer', () => {
     expect(source).not.toContain("return '未验证'");
   });
 
-  it('blends the compact indicator into the ChatGPT header area', async () => {
+  it('stays invisible until a route is captured and sits farther right', async () => {
     const source = await userscript();
-    expect(source).toContain('<button id="pill" type="button">尚未捕获</button>');
-    expect(source).toContain('pill.textContent = label;');
+    expect(source).toContain('<button id="pill" type="button" hidden></button>');
+    expect(source).toContain('if (!currentReading?.routeModel) return null;');
+    expect(source).toContain('pill.hidden = !label;');
+    expect(source).toContain("pill.textContent = label ?? '';");
+    expect(source).not.toContain('尚未捕获');
+    expect(source).not.toContain('正在获取…');
     expect(source).not.toContain('路由模型 ·');
     expect(source).toContain('当前实际路由');
     expect(source).toContain('请求模型');
     expect(source).toContain('模型标签');
-    expect(source).toContain('right:92px;top:56px;');
+    expect(source).toContain('right:56px;top:56px;');
     expect(source).toContain('font-family:inherit;font-size:11px;font-weight:500;line-height:1.25');
     expect(source).toContain('border:0;background:transparent');
     expect(source).toContain('box-shadow:none');
