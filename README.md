@@ -2,150 +2,157 @@
 
 # ChatGPT Route Inspector
 
-![Stars](https://img.shields.io/github/stars/Liu-Bot24/chatgpt-route-inspector?style=flat&label=Stars&cache=20260811) ![Forks](https://img.shields.io/github/forks/Liu-Bot24/chatgpt-route-inspector?style=flat&label=Forks&cache=20260811) ![Views 14d](https://github-stats.liu-qi.cn/api/badge/Liu-Bot24/chatgpt-route-inspector/views14d.svg?v=4) ![Clones 14d](https://github-stats.liu-qi.cn/api/badge/Liu-Bot24/chatgpt-route-inspector/clones14d.svg?v=4) ![Downloads](https://img.shields.io/github/downloads/Liu-Bot24/chatgpt-route-inspector/total?style=flat&label=Downloads&cache=20260811) ![Release](https://img.shields.io/github/v/release/Liu-Bot24/chatgpt-route-inspector?style=flat&label=Release&cache=20260811)
-
-![ChatGPT 模型路由检测器预览](assets/promotional/chatgpt-route-inspector-1200x510-zh.png)
-
-Languages: [简体中文](README.md) · [English](README-en.md)
+一个只回答一件事的小工具：**我这条 ChatGPT 对话现在实际被路由到了什么模型？**
 
 </div>
 
-## 产品介绍
+## 它怎么工作
 
-ChatGPT Route Inspector 是一款适用于 Chromium 浏览器的 ChatGPT 模型路由检测扩展。它能够同时显示网页端发送的请求模型与服务器响应报告的路由模型，帮助用户核验 Pro 请求是否仍由 Pro 响应，或是否被路由到其他模型。
+不需要手动选择“实时模式”或“重载模式”。
 
-扩展直接读取请求与响应中可用的模型信息，不根据回答速度、写作风格、主观质量或模型自述推测结果。
+- **刷新已有对话**：自动读取当前已加载回答中的模型路由信息。
+- **发送新消息**：立即切换到这条新消息，并在响应到达后自动更新实际路由模型。
+- **不猜模型**：只读取 ChatGPT 网页请求、响应或回答记录里已经存在的模型字段，不根据回答速度、写作风格、内容质量或模型自述做推断。
 
-本项目是独立的非官方工具，与 OpenAI 不存在隶属、授权或背书关系。
+本项目提供两种安装方式：Chromium 扩展版和 Tampermonkey 油猴版。两者可以按个人习惯任选其一。
 
-## 界面预览
+## 安装方式一：Tampermonkey 油猴版
 
-以下示例展示请求模型为 `GPT 5.6 Pro`、响应路由为 `GPT 5.5 mini` 时的界面。
+如果你更喜欢轻量的用户脚本，这是最直接的安装方式。
 
-### Popup
+### 直接安装
 
-<p align="center">
-  <img src="docs/images/popup-zh.png" width="640" alt="ChatGPT Route Inspector 中文 Popup">
-</p>
+1. 先安装 Tampermonkey。
+2. 打开下面这个 `.user.js` 文件的 Raw 地址：
 
-### 页面浮窗
+   https://raw.githubusercontent.com/ChambersXDU/chatgpt-route-inspector/main/userscript/chatgpt-route-inspector.user.js
 
-<p align="center">
-  <img src="docs/images/overlay-zh.png" width="420" alt="ChatGPT Route Inspector 中文页面浮窗">
-</p>
+3. Tampermonkey 会打开安装页面，确认安装即可。
+4. 刷新 `chatgpt.com`。
 
-### 路由诊断台
+脚本会在页面右下角显示一个很小的“路由模型”胶囊。点击后可展开查看当前模型、触发方式、路由字段来源和请求模型。
 
-<p align="center">
-  <img src="docs/images/dashboard-zh.png" width="100%" alt="ChatGPT Route Inspector 中文路由诊断台">
-</p>
+油猴版本：
 
-## 功能
+- 固定中文界面；
+- 没有手动模式切换；
+- 刷新已有对话时自动显示重载捕获结果；
+- 发送新消息后自动切换到新消息结果；
+- 默认不保存聊天正文；
+- 使用 `@sandbox raw` 在页面上下文运行，以便观察 ChatGPT 自身的网络请求；
+- 只匹配 `https://chatgpt.com/*` 和 `https://chat.openai.com/*`。
 
-- **实时请求检测**：发送新消息后，显示本轮请求模型与响应路由。
-- **会话重载检测**：刷新已有会话，读取已完成回答中可用的响应路由信息。
-- **页面浮窗**：在 ChatGPT 页面直接查看结果，支持完整、极简、迷你、边缘收纳和隐藏状态。
-- **路由诊断台**：查看本机记录、证据信息，并导出 Markdown 或 JSON 报告。
-- **PoW 难度显示**：显示原始十六进制难度值及其十进制换算结果。
-- **中英文界面**：Popup、浮窗、诊断台、设置和报告均支持中文与英文。
-- **本地优先**：检测记录保存在当前浏览器，不上传到第三方服务器。
+脚本源码就在仓库中：[`userscript/chatgpt-route-inspector.user.js`](userscript/chatgpt-route-inspector.user.js)。
 
-## 安装
+## 安装方式二：Chrome / Edge 扩展版
 
-### 从 Chrome 应用商店安装
+### 从 GitHub Actions 下载安装包
 
-[在 Chrome 应用商店安装 ChatGPT 模型路由检测器](https://chromewebstore.google.com/detail/fbbnebcnkekjjmenncangmdhojamjcli)
+仓库的 **Install Packages** 工作流会在 `main` 更新时自动生成安装文件。
 
-### 手动安装发布包
+1. 打开仓库的 Actions 页面。
+2. 选择 **Install Packages**。
+3. 打开最新一次绿色运行。
+4. 下载 `chatgpt-route-inspector-installers-...` artifact。
+5. 解压 artifact，里面会有：
+   - `chatgpt-route-inspector-<version>.zip`：Chromium 扩展安装包；
+   - `chatgpt-route-inspector-<version>.user.js`：Tampermonkey 安装脚本；
+   - `SHA256SUMS.txt`：两份安装文件的 SHA-256 校验值。
+6. 再解压扩展 zip。
+7. 打开 `chrome://extensions/` 或 `edge://extensions/`。
+8. 开启“开发者模式”。
+9. 点击“加载已解压的扩展程序”，选择刚才解压出来的扩展目录。
 
-1. 下载并解压 [`chatgpt-route-inspector-1.0.5.zip`](https://github.com/Liu-Bot24/chatgpt-route-inspector/releases/download/v1.0.5/chatgpt-route-inspector-1.0.5.zip)。
-2. 打开 `chrome://extensions/`。
-3. 开启右上角的“开发者模式”。
-4. 点击“加载已解压的扩展程序”。
-5. 选择解压后的扩展目录。
-6. 刷新已经打开的 ChatGPT 页面。
+### GitHub Release
+
+当仓库推送 `v*` tag 时，安装包工作流会自动把扩展 zip、油猴脚本和 `SHA256SUMS.txt` 挂到对应 GitHub Release 上。
 
 ### 从源码构建
 
-需要 Node.js 20 或更高版本。
+需要 Node.js 20 或更高版本：
 
-```powershell
+```bash
 npm ci
 npm run build
 ```
 
-构建后的扩展位于 `dist/extension`。在 `chrome://extensions/` 中选择“加载已解压的扩展程序”，然后选择该目录。
+构建后的扩展位于 `dist/extension`。
 
-## 使用方法
+如果需要同时生成可分发安装包：
 
-### 检测新回答
+```bash
+npm run package
+```
 
-1. 打开 ChatGPT 并进入目标会话。
-2. 点击扩展图标，选择“实时请求”。
-3. 在 ChatGPT 中选择模型并发送一条消息。
-4. 在 Popup 或页面浮窗中查看“请求模型 → 响应路由”。
+产物位于 `release/`。
 
-### 复查已有回答
+## 扩展版界面
 
-1. 在 Popup 中选择“会话重载”。
-2. 刷新当前 ChatGPT 会话。
-3. 查看该会话中已读取到的响应路由。
+浏览器扩展 Popup 保持很简单：
 
-### 管理页面浮窗
+- 当前路由模型；
+- 触发方式与更新时间；
+- 可折叠的高级信息；
+- 一个“设置”入口。
 
-- 点击右上角的“极简模式”按钮，可显示请求模型、响应路由和 PoW 难度。
-- 点击“迷你模式”按钮，可将浮窗贴靠到右侧边缘，仅显示响应路由值和 PoW 十进制值。
-- 点击极简浮窗可恢复完整状态。
-- 在迷你浮窗中，点击左侧窄边区域可将其收纳到窗口右侧；点击其余内容区域可恢复完整状态。
-- 点击收纳后保留在窗口右侧的窄边条，可恢复迷你浮窗。
-- 点击“隐藏浮窗”后，浮窗会从页面完全消失。
-- 如需重新显示，请在扩展 Popup 中点击“显示浮窗”。
+页面浮窗默认关闭。诊断台、记录上限、导出请求 ID、清空本地记录等次要功能都放在设置里。
 
-## 结果说明
+## 检测依据
 
-| 显示内容 | 含义 |
-|---|---|
-| 请求模型 | ChatGPT 网页端为本轮消息发送的模型 |
-| 响应路由 | 服务器响应中报告的本轮路由模型 |
-| 模型标签 | 回答记录附带的模型标签，仅作为补充信息 |
-| PoW 难度 | 原始十六进制值及其十进制换算结果 |
+优先使用显式的响应路由字段：
 
-如果某项显示为 `—`，表示本轮没有读取到对应信息。扩展不会对缺失结果进行猜测。
+- `resolved_model_slug`
+- `server_ste_metadata.model_slug`
 
-如需使用 Chrome DevTools 进行交叉核验，请参阅 [Chrome 手工核验指南](docs/chrome-manual-verification.md)。
+如果没有显式路由字段，才会退回回答记录中的模型标签，例如：
 
-## 隐私与权限
+- `assistant.metadata.model_slug`
 
-完整的数据处理说明请参阅 [隐私政策](PRIVACY.md)。
+如果这些证据互相冲突，界面会明确显示“路由字段冲突”，而不是擅自挑一个结果。
 
-扩展仅保存路由检测所需的数据，包括模型信息、PoW 难度、时间、耗时、记录来源和扩展设置。
+## 隐私
 
-扩展不会保存或上传：
+工具只观察模型路由相关字段，不需要保存或上传提示词和回答正文。
 
-- 提示词和回答正文；
-- Cookie、登录凭据或其他身份验证信息；
-- 附件内容与文件名；
-- 未经筛选的网络请求、响应或 HAR 文件。
+扩展版的检测记录保存在当前浏览器本机；油猴版当前只维护页面会话中的最新读取结果。
 
-### 浏览器权限
+本项目不会主动上传：
 
-| 权限 | 用途 |
-|---|---|
-| `storage` | 在本机保存设置与检测记录 |
-| `chatgpt.com` / `chat.openai.com` | 在支持的 ChatGPT 页面读取模型路由信息 |
+- 提示词或回答正文；
+- Cookie、登录凭据或认证信息；
+- 附件内容；
+- 完整 HAR 或未筛选网络流量。
 
-扩展不申请 `debugger` 权限，也不监控其他网站或一般浏览器流量。
+完整说明见 [`PRIVACY.md`](PRIVACY.md)。
 
-## 兼容性与限制
+## CI 与测试
 
-- 支持 Chrome 111 及更高版本，以及其他兼容 Manifest V3 的 Chromium 浏览器。
-- 扩展只观察并显示信息，不会修改 ChatGPT 请求、响应、模型选择、账号权限或用量限制。
-- 可显示的内容取决于 ChatGPT 网页响应中实际提供的信息；网站结构更新后，部分信息可能暂时无法读取。
-- PoW 难度仅作为原始数值展示，不代表 OpenAI 官方的账号状态或风险结论。
+主 CI 会执行：
+
+```bash
+npm ci
+npm run typecheck
+npm run lint
+node --check userscript/chatgpt-route-inspector.user.js
+npm run test:unit
+npm run test:integration
+npm run build
+```
+
+随后会在 Chromium 中执行扩展版和油猴版的浏览器冒烟测试。
+
+油猴版浏览器测试会实际模拟：
+
+1. 重新加载已有对话并读取 `GPT 5.5`；
+2. 发送一条新消息；
+3. 自动进入“正在获取”；
+4. 新响应到达后更新为 `GPT 5.6 Pro`。
+
+独立的 **Install Packages** CI 还会实际生成并验证扩展 zip、`.user.js` 和 SHA-256 校验文件。
 
 ## 开发
 
-```powershell
+```bash
 npm run typecheck
 npm run lint
 npm test
@@ -153,12 +160,13 @@ npm run test:e2e
 npm run package
 ```
 
-发布包与 SHA-256 校验文件输出到 `release/`。
+## 兼容性与限制
 
-## 友情链接
-
-- [LINUX DO](https://linux.do/) — 新的理想型社区
+- 扩展版面向 Chrome / Edge 等 Manifest V3 Chromium 浏览器。
+- 油猴版面向支持现代 UserScript API、可使用页面上下文注入的 Tampermonkey。
+- ChatGPT 网页接口或字段结构发生变化后，解析逻辑可能需要同步更新。
+- 工具只能展示网页实际暴露出来的模型字段，不代表可以访问 OpenAI 内部调度、计费或账号风控系统。
 
 ## 免责声明
 
-本项目不隶属于 OpenAI，也未获得 OpenAI 官方认可。ChatGPT、OpenAI 及相关标识是其各自权利人的商标。扩展仅展示 ChatGPT 网页请求与响应中可读取的信息，不构成对 OpenAI 内部基础设施、计费系统或账号状态的官方证明。
+本项目是独立的非官方工具，与 OpenAI 不存在隶属、授权或背书关系。ChatGPT、OpenAI 及相关标识是其各自权利人的商标。
