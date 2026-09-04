@@ -66,6 +66,7 @@ async function buildTarget(target) {
     await copy(`src/ui/${name}/index.html`, path.join(outdir, 'ui', name, 'index.html'));
   }
   await copy('src/ui/shared/styles.css', path.join(outdir, 'ui', 'shared', 'styles.css'));
+  await copy('src/ui/shared/clean.css', path.join(outdir, 'ui', 'shared', 'clean.css'));
   await copy('schemas/route-turn.v1.schema.json', path.join(outdir, 'schemas', 'route-turn.v1.schema.json'));
   await cp(path.join(root, '_locales'), path.join(outdir, '_locales'), { recursive: true });
   await cp(path.join(root, 'icons'), path.join(outdir, 'icons'), { recursive: true });
