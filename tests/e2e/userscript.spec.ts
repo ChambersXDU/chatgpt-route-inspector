@@ -16,6 +16,11 @@ async function pillText(page: Page): Promise<string | null> {
   return shadowText(page, '#pill');
 }
 
+async function pillHidden(page: Page): Promise<boolean | null> {
+  return page.locator('[data-route-inspector-root="userscript"]').evaluate((host) =>
+    (host.shadowRoot?.querySelector('#pill') as HTMLButtonElement | null)?.hidden ?? null);
+}
+
 test('Tampermonkey keeps terminal STE routing when reload metadata only repeats the selected model', async ({ page }) => {
   await page.route('https://chatgpt.com/**', async (route) => {
     await route.fulfill({
@@ -75,7 +80,8 @@ test('Tampermonkey keeps terminal STE routing when reload metadata only repeats 
   });
 
   await page.addScriptTag({ content: await readFile(userscriptPath, 'utf8') });
-  await expect.poll(() => pillText(page)).toBe('尚未捕获');
+  await expect.poll(() => pillHidden(page)).toBe(true);
+  await expect.poll(() => pillText(page)).toBe('');
 
   const indicatorStyle = await page.locator('[data-route-inspector-root="userscript"]').evaluate((host) => {
     const pill = host.shadowRoot?.querySelector('#pill') as HTMLButtonElement | null;
@@ -91,7 +97,7 @@ test('Tampermonkey keeps terminal STE routing when reload metadata only repeats 
     };
   });
   expect(indicatorStyle).toEqual({
-    right: '92px',
+    right: '56px',
     top: '56px',
     fontSize: '11px',
     backgroundColor: 'rgba(0, 0, 0, 0)',
@@ -112,7 +118,8 @@ test('Tampermonkey keeps terminal STE routing when reload metadata only repeats 
 
   // A reload record that only repeats the selected model is not actual route evidence.
   await page.evaluate(() => window.fetch('https://chatgpt.com/backend-api/conversation/e2e-userscript'));
-  await expect.poll(() => pillText(page)).toBe('尚未捕获');
+  await expect.poll(() => pillHidden(page)).toBe(true);
+  await expect.poll(() => pillText(page)).toBe('');
 
   const live = page.evaluate(() => window.fetch('https://chatgpt.com/backend-api/f/conversation', {
     method: 'POST',
@@ -123,8 +130,8 @@ test('Tampermonkey keeps terminal STE routing when reload metadata only repeats 
       messages: []
     })
   }));
-  await expect.poll(() => pillText(page)).toMatch(/正在获取|GPT 5\.5 mini/);
   await live;
+  await expect.poll(() => pillHidden(page)).toBe(false);
   await expect.poll(() => pillText(page)).toBe('GPT 5.5 mini');
 
   await expect(page.evaluate(() => Object.keys(sessionStorage)
@@ -133,6 +140,7 @@ test('Tampermonkey keeps terminal STE routing when reload metadata only repeats 
   // Simulate the conversation fetch that happens after a page refresh. It must restore the
   // matching live capture instead of replacing it with resolved_model_slug = GPT 5.6 Thinking.
   await page.evaluate(() => window.fetch('https://chatgpt.com/backend-api/conversation/e2e-userscript'));
+  await expect.poll(() => pillHidden(page)).toBe(false);
   await expect.poll(() => pillText(page)).toBe('GPT 5.5 mini');
 
   await page.locator('[data-route-inspector-root="userscript"]').evaluate((host) =>
