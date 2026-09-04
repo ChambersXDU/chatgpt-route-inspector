@@ -1,4 +1,5 @@
-import type { InspectorState, RouteTurn } from '../../core/types';
+import { latestTurnForTab } from '../../core/current-route';
+import type { InspectorState } from '../../core/types';
 import {
   escapeHtml,
   formatDuration,
@@ -18,12 +19,8 @@ const captureStatus = document.querySelector<HTMLElement>('#capture-status');
 let activeTabId: number | undefined;
 let state: InspectorState;
 
-function latestTurnForTab(): RouteTurn | null {
-  const turns = state.turns.filter((turn) => activeTabId === undefined || turn.tabId === activeTabId);
-  return turns.find((turn) => turn.phase !== 'failed') ?? turns[0] ?? null;
-}
-
-function routedModel(turn: RouteTurn | null): string {
+function routedModel() {
+  const turn = latestTurnForTab(state, activeTabId);
   if (!turn) return '尚未捕获';
   if ((turn.phase === 'requested' || turn.phase === 'responding') && !turn.routeModel && !turn.modelLabel) {
     return '正在获取…';
@@ -34,8 +31,8 @@ function routedModel(turn: RouteTurn | null): string {
   return '暂未读取到模型';
 }
 
-function triggerLabel(turn: RouteTurn): string {
-  return turn.captureMode === 'live' ? '新消息' : '重新加载';
+function triggerLabel(captureMode: 'live' | 'reload'): string {
+  return captureMode === 'live' ? '新消息' : '重新加载';
 }
 
 function row(label: string, value: string): string {
@@ -44,12 +41,12 @@ function row(label: string, value: string): string {
 
 function render(next: InspectorState): void {
   state = next;
-  const turn = latestTurnForTab();
+  const turn = latestTurnForTab(state, activeTabId);
 
-  if (currentModel) currentModel.textContent = routedModel(turn);
+  if (currentModel) currentModel.textContent = routedModel();
   if (currentMeta) {
     currentMeta.textContent = turn
-      ? `${triggerLabel(turn)} · ${formatTime(turn.observedAt, 'zh')}`
+      ? `${triggerLabel(turn.captureMode)} · ${formatTime(turn.observedAt, 'zh')}`
       : '重新加载当前对话，或发送一条新消息后自动显示';
   }
 
@@ -73,7 +70,7 @@ function render(next: InspectorState): void {
       const label = recordedModelLabel(turn, 'zh');
       const labelSource = modelLabelSourcesLabel(turn, 'zh');
       advancedContent.innerHTML = [
-        row('触发方式', triggerLabel(turn)),
+        row('触发方式', triggerLabel(turn.captureMode)),
         row('路由来源', routeSource),
         row('模型标签', label),
         row('标签来源', labelSource),
