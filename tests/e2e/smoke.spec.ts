@@ -10,7 +10,7 @@ const extensionPath = path.join(root, 'dist', 'e2e');
 test('focused popup and settings render in the built extension', async () => {
   const profileDir = await mkdtemp(path.join(tmpdir(), 'route-inspector-smoke-'));
   const context = await chromium.launchPersistentContext(profileDir, {
-    headless: true,
+    headless: false,
     args: [
       `--disable-extensions-except=${extensionPath}`,
       `--load-extension=${extensionPath}`
