@@ -33,10 +33,11 @@ test('focused popup and settings render in the built extension', async () => {
 
     await page.goto(`chrome-extension://${extensionId}/ui/options/index.html`);
     await expect(page.locator('#auto')).toBeChecked();
-    await expect(page.locator('#overlay-enabled')).not.toBeChecked();
-    await expect(page.locator('#overlay-mode')).toBeVisible();
+    await expect(page.locator('#overlay')).not.toBeChecked();
     await expect(page.locator('#dashboard')).toBeVisible();
     await expect(page.locator('[data-language]')).toHaveCount(0);
+    await expect(page.locator('#mode-live')).toHaveCount(0);
+    await expect(page.locator('#mode-reload')).toHaveCount(0);
   } finally {
     await context.close();
     await rm(profileDir, { recursive: true, force: true });
