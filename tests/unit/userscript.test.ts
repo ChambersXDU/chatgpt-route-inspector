@@ -14,7 +14,7 @@ describe('Tampermonkey installer', () => {
   it('has installable metadata for ChatGPT and page-context interception', async () => {
     const source = await userscript();
     expect(source.startsWith('// ==UserScript==')).toBe(true);
-    expect(source).toContain('// @version      1.0.11');
+    expect(source).toContain('// @version      1.0.12');
     expect(source).toContain('// @match        https://chatgpt.com/*');
     expect(source).toContain('// @match        https://chat.openai.com/*');
     expect(source).toContain('// @run-at       document-start');
@@ -23,22 +23,27 @@ describe('Tampermonkey installer', () => {
     expect(source).toContain('raw.githubusercontent.com/ChambersXDU/chatgpt-route-inspector/main/userscript/chatgpt-route-inspector.user.js');
   });
 
-  it('keeps the same automatic reload/new-message product contract', async () => {
+  it('keeps automatic capture and restores only a matching live result on reload', async () => {
     const source = await userscript();
-    expect(source).toContain("update(mergeFields(fields, { conversationId: conversationId ?? fields.conversationId }), '重新加载', 'completed')");
     expect(source).toContain("update(baseFields, '新消息', 'requested')");
     expect(source).toContain("update(fields, '新消息', 'responding')");
+    expect(source).toContain('restoreCapturedReading(merged, conversationId)');
+    expect(source).toContain("CAPTURE_STORAGE_PREFIX = 'chatgpt-route-inspector:capture:v1:'");
+    expect(source).toContain('sessionStorage.setItem');
+    expect(source).toContain('currentMessageId === storedMessageId');
     expect(source).not.toContain('mode-live');
     expect(source).not.toContain('mode-reload');
   });
 
-  it('uses explicit route fields for routing and keeps assistant model_slug as a label only', async () => {
+  it('trusts server STE first and does not treat reload resolved_model_slug as actual routing', async () => {
     const source = await userscript();
-    expect(source).toContain("source: 'resolved_model_slug'");
-    expect(source).toContain("source: 'server_ste_metadata.model_slug'");
+    expect(source).toContain("['server_ste_metadata.model_slug']");
+    expect(source).toContain("const resolvedFallback = trigger === '新消息' ? resolvedModel : null");
+    expect(source).toContain('const routeModel = serverModel ?? resolvedFallback');
     expect(source).toContain('const modelTag = normalized(fields.responseModelSlug)');
-    expect(source).toContain('explicitModels.length > 1');
+    expect(source).toContain('resolved_model_slug and assistant model_slug from a reload record do not overwrite it');
     expect(source).toContain('请求模型与服务器路由不一致');
+    expect(source).not.toContain("return '未验证'");
   });
 
   it('blends the compact indicator into the ChatGPT header area', async () => {
