@@ -30,12 +30,14 @@ describe('focused Chinese product surface', () => {
     expect(html).not.toContain('id="dashboard"');
   });
 
-  it('moves secondary controls into settings', async () => {
+  it('moves secondary controls into settings without exposing capture modes', async () => {
     const html = await source('src/ui/options/index.html');
-    for (const id of ['auto', 'overlay-enabled', 'overlay-mode', 'retention', 'ids', 'dashboard', 'clear']) {
+    for (const id of ['auto', 'overlay', 'retention', 'ids', 'dashboard', 'clear']) {
       expect(html).toContain(`id="${id}"`);
     }
     expect(html).not.toContain('data-language');
+    expect(html).not.toContain('id="mode-live"');
+    expect(html).not.toContain('id="mode-reload"');
   });
 
   it('uses the restrained light visual layer', async () => {
