@@ -43,7 +43,7 @@ describe('stored turn migration', () => {
     expect(turn).toMatchObject({ captureMode: 'reload', routeModel: 'gpt-5-5-mini', modelLabel: 'gpt-5-5-mini', verdict: 'unknown' });
   });
 
-  it('infers reload mode for a stored assistant DOM observation', () => {
+  it('keeps a stored assistant DOM model as an unverified reload label', () => {
     const turn = migrateStoredTurn({
       ...legacyBase,
       requestedModel: null,
@@ -51,10 +51,10 @@ describe('stored turn migration', () => {
       sources: ['assistant_dom'],
       domModelSlug: 'gpt-5-6-pro'
     });
-    expect(turn).toMatchObject({ captureMode: 'reload', routeModel: 'gpt-5-6-pro', modelLabel: 'gpt-5-6-pro', verdict: 'unknown' });
+    expect(turn).toMatchObject({ captureMode: 'reload', routeModel: null, modelLabel: 'gpt-5-6-pro', verdict: 'unknown' });
   });
 
-  it('infers reload mode from a plural conversation record URL', () => {
+  it('infers reload mode from a plural conversation record URL and trusts its explicit route', () => {
     const turn = migrateStoredTurn({
       ...legacyBase,
       captureMode: undefined,
@@ -63,7 +63,7 @@ describe('stored turn migration', () => {
       pageUrl: 'https://chatgpt.com/backend-api/conversations/private-id',
       responseModelSlug: 'gpt-5-6-pro'
     });
-    expect(turn).toMatchObject({ captureMode: 'reload', routeModel: null, verdict: 'conflict' });
+    expect(turn).toMatchObject({ captureMode: 'reload', routeModel: 'gpt-5-5-mini', modelLabel: 'gpt-5-6-pro', verdict: 'unknown' });
   });
 
   it('keeps WebSocket-enriched live sources during migration', () => {
