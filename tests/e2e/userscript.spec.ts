@@ -6,13 +6,17 @@ import { expect, test, type Page } from '@playwright/test';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const userscriptPath = path.join(root, 'userscript', 'chatgpt-route-inspector.user.js');
 
-async function pillText(page: Page): Promise<string | null> {
-  return page.locator('[data-route-inspector-root="userscript"]').evaluate((host) =>
-    host.shadowRoot?.querySelector('#pill')?.textContent ?? null
-  );
+async function shadowText(page: Page, selector: string): Promise<string | null> {
+  return page.locator('[data-route-inspector-root="userscript"]').evaluate((host, target) =>
+    host.shadowRoot?.querySelector(target)?.textContent ?? null,
+  selector);
 }
 
-test('Tampermonkey version follows reload and then the newest live message automatically', async ({ page }) => {
+async function pillText(page: Page): Promise<string | null> {
+  return shadowText(page, '#pill');
+}
+
+test('Tampermonkey version follows reload and then trusts terminal STE routing for the newest live message', async ({ page }) => {
   await page.setContent('<!doctype html><html><body><main>fixture</main></body></html>');
   await page.evaluate(() => {
     const reloadRecord = {
@@ -35,7 +39,8 @@ test('Tampermonkey version follows reload and then the newest live message autom
       }
     };
     const liveBody = [
-      'data: {"message":{"author":{"role":"assistant"},"metadata":{"resolved_model_slug":"gpt-5-6-pro"}}}',
+      'data: {"message":{"author":{"role":"assistant"},"metadata":{"model_slug":"gpt-5-6-thinking"}}}',
+      'data: {"type":"server_ste_metadata","metadata":{"model_slug":"gpt-5-5-mini"}}',
       'data: [DONE]',
       ''
     ].join('\n');
@@ -78,9 +83,16 @@ test('Tampermonkey version follows reload and then the newest live message autom
   const live = page.evaluate(() => window.fetch('https://chatgpt.com/backend-api/f/conversation', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ model: 'gpt-5-6-pro', messages: [] })
+    body: JSON.stringify({ model: 'gpt-5-6-thinking', messages: [] })
   }));
-  await expect.poll(() => pillText(page)).toMatch(/正在获取|GPT 5\.6 Pro/);
+  await expect.poll(() => pillText(page)).toMatch(/正在获取|GPT 5\.5 mini/);
   await live;
-  await expect.poll(() => pillText(page)).toBe('路由模型 · GPT 5.6 Pro');
+  await expect.poll(() => pillText(page)).toBe('路由模型 · GPT 5.5 mini');
+
+  await page.locator('[data-route-inspector-root="userscript"]').evaluate((host) =>
+    (host.shadowRoot?.querySelector('#pill') as HTMLButtonElement | null)?.click());
+  await expect.poll(() => shadowText(page, '#alert')).toBe('请求模型与服务器路由不一致');
+  await expect.poll(() => shadowText(page, '#request')).toBe('GPT 5.6 Thinking');
+  await expect.poll(() => shadowText(page, '#label-value')).toBe('GPT 5.6 Thinking');
+  await expect.poll(() => shadowText(page, '#source')).toBe('server_ste_metadata.model_slug');
 });
