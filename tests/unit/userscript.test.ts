@@ -14,7 +14,7 @@ describe('Tampermonkey installer', () => {
   it('has installable metadata for ChatGPT and page-context interception', async () => {
     const source = await userscript();
     expect(source.startsWith('// ==UserScript==')).toBe(true);
-    expect(source).toContain('// @version      1.0.10');
+    expect(source).toContain('// @version      1.0.11');
     expect(source).toContain('// @match        https://chatgpt.com/*');
     expect(source).toContain('// @match        https://chat.openai.com/*');
     expect(source).toContain('// @run-at       document-start');
@@ -50,7 +50,7 @@ describe('Tampermonkey installer', () => {
     expect(source).toContain('请求模型');
     expect(source).toContain('模型标签');
     expect(source).toContain('right:92px;top:56px;');
-    expect(source).toContain('font:500 11px/1.25 inherit');
+    expect(source).toContain('font-family:inherit;font-size:11px;font-weight:500;line-height:1.25');
     expect(source).toContain('border:0;background:transparent');
     expect(source).toContain('box-shadow:none');
     expect(source).toContain('right:0;top:24px;');
