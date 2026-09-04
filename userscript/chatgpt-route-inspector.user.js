@@ -9,6 +9,7 @@
 // @run-at       document-start
 // @sandbox      raw
 // @grant        none
+// @noframes
 // @homepageURL  https://github.com/ChambersXDU/chatgpt-route-inspector
 // @supportURL   https://github.com/ChambersXDU/chatgpt-route-inspector/issues
 // @updateURL    https://raw.githubusercontent.com/ChambersXDU/chatgpt-route-inspector/main/userscript/chatgpt-route-inspector.user.js
@@ -308,6 +309,10 @@
 
   function mountUi() {
     if (rootHost?.isConnected) return;
+    if (!document.documentElement) {
+      document.addEventListener('readystatechange', mountUi, { once: true });
+      return;
+    }
     rootHost = document.createElement('div');
     rootHost.dataset.routeInspectorRoot = 'userscript';
     rootHost.style.cssText = 'all:initial;position:fixed;right:18px;bottom:18px;z-index:2147483647;';
@@ -341,7 +346,7 @@
     sourceValue = shadow.querySelector('#source');
     requestValue = shadow.querySelector('#request');
     pill.addEventListener('click', () => panel.classList.toggle('open'));
-    (document.documentElement ?? document).append(rootHost);
+    document.documentElement.append(rootHost);
     render();
   }
 
