@@ -1,5 +1,4 @@
 import { defaultState, mutateState, readState, storeObservation, storePowObservation } from './storage';
-import { normalizeUiLanguage } from '../core/language';
 import { normalizeObservation } from '../core/observation';
 import type { InspectorState, PowObservation, RouteObservation } from '../core/types';
 import type { RuntimeRequest, RuntimeResponse } from '../shared/messages';
@@ -8,7 +7,7 @@ const allowedOrigins = new Set(__ROUTE_INSPECTOR_ALLOWED_ORIGINS__);
 
 async function updateBadge(tabId: number | undefined, state: InspectorState): Promise<void> {
   if (tabId === undefined) return;
-  const latest = state.turns.find((turn) => turn.tabId === tabId && turn.captureMode === state.settings.captureMode);
+  const latest = state.turns.find((turn) => turn.tabId === tabId);
   const text = latest?.verdict === 'mismatch' || latest?.verdict === 'conflict'
     ? '!'
     : latest?.verdict === 'normal'
@@ -83,10 +82,7 @@ chrome.runtime.onMessage.addListener((raw: unknown, sender, sendResponse: (respo
       return sender.tab?.id === undefined ? { ok: true, state } : { ok: true, state, tabId: sender.tab.id };
     }
     if (request.type === 'route:update-settings') {
-      const requestedLanguage = request.settings.uiLanguage;
-      const uiLanguage = requestedLanguage === undefined ? undefined : normalizeUiLanguage(requestedLanguage);
-      if (requestedLanguage !== undefined && !uiLanguage) return { ok: false, error: 'Invalid UI language.' };
-      const settings = uiLanguage ? { ...request.settings, uiLanguage } : request.settings;
+      const settings = { ...request.settings, uiLanguage: 'zh' as const };
       const state = await mutateState((current) => ({ ...current, settings: { ...current.settings, ...settings } }));
       await broadcast(state);
       return { ok: true, state };
