@@ -13,7 +13,7 @@ const handoff = readFileSync(new URL('../fixtures/handoff-response.sse', import.
 const webSocketFrame = readFileSync(new URL('../fixtures/websocket-route-frame.json', import.meta.url), 'utf8');
 
 describe('request-to-route evidence pipeline', () => {
-  it('reports a route-field conflict when explicit live routing differs from the model label', () => {
+  it('reports a mismatch when explicit live routing resolves to mini but the model label stays on the requested model', () => {
     const fields = mergeRouteFields(parseConversationRequest(request), parseSseResponse(abnormal));
     const turn = createTurn({
       captureId: 'integration-mismatch', source: 'page_fetch', captureMode: 'live', phase: 'completed',
@@ -22,10 +22,10 @@ describe('request-to-route evidence pipeline', () => {
     });
     expect(turn).toMatchObject({
       requestedModel: 'gpt-5-6-pro',
-      routeModel: null,
-      routeModelSources: ['resolved_model_slug', 'server_ste_metadata.model_slug', 'assistant.metadata.model_slug'],
+      routeModel: 'gpt-5-5-mini',
+      routeModelSources: ['resolved_model_slug', 'server_ste_metadata.model_slug'],
       modelLabel: 'gpt-5-6-pro',
-      verdict: 'conflict',
+      verdict: 'mismatch',
       captureMode: 'live'
     });
     expect(JSON.stringify(turn)).not.toMatch(/SECRET_PROMPT|SECRET_ANSWER|confidence/i);
@@ -65,8 +65,10 @@ describe('request-to-route evidence pipeline', () => {
     expect(turns).toHaveLength(1);
     expect(turns[0]).toMatchObject({
       requestedModel: 'gpt-5-6-pro',
-      routeModel: null,
-      verdict: 'conflict',
+      routeModel: 'gpt-5-5-mini',
+      routeModelSources: ['resolved_model_slug', 'server_ste_metadata.model_slug'],
+      modelLabel: 'gpt-5-6-pro',
+      verdict: 'mismatch',
       phase: 'completed',
       sources: ['page_fetch', 'page_websocket'],
       durationMs: 5000
@@ -74,7 +76,7 @@ describe('request-to-route evidence pipeline', () => {
     expect(JSON.stringify(turns)).not.toMatch(/SECRET_PROMPT|SECRET_ANSWER|HANDOFF_SECRET/);
   });
 
-  it('extracts a completed assistant route after a conversation reload', () => {
+  it('extracts a completed explicit assistant route after a conversation reload', () => {
     const [fields] = parseConversationRecord(conversationRecord);
     expect(fields).toBeDefined();
     const turn = createTurn({
@@ -83,10 +85,10 @@ describe('request-to-route evidence pipeline', () => {
     });
     expect(turn).toMatchObject({
       requestedModel: null,
-      routeModel: null,
-      routeModelSources: ['resolved_model_slug', 'assistant.metadata.model_slug'],
+      routeModel: 'gpt-5-5-mini',
+      routeModelSources: ['resolved_model_slug'],
       modelLabel: 'gpt-5-6-pro',
-      verdict: 'conflict',
+      verdict: 'unknown',
       captureMode: 'reload'
     });
   });
