@@ -138,12 +138,12 @@ export const EMPTY_ROUTE_FIELDS: RouteFields = {
 };
 
 export const DEFAULT_SETTINGS: InspectorSettings = {
-  overlayEnabled: true,
+  overlayEnabled: false,
   overlayMode: 'full',
   overlayMinimized: false,
   retentionLimit: 100,
   includeRequestIdsInExport: false,
   autoCaptureEnabled: true,
   captureMode: 'live',
-  uiLanguage: 'en'
+  uiLanguage: 'zh'
 };
