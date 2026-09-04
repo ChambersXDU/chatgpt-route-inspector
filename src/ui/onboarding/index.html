@@ -3,23 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title data-i18n="onboarding.documentTitle">Route Inspector · 开始使用</title>
+  <title>Route Inspector · 开始使用</title>
   <link rel="stylesheet" href="../shared/styles.css">
+  <link rel="stylesheet" href="../shared/clean.css">
 </head>
 <body>
   <main class="onboarding">
-    <header class="masthead onboarding-masthead"><div class="brand"><span class="brand-mark"></span><div class="brand-copy"><div class="brand-title-line"><h1 data-i18n="app.name">Route Inspector</h1><a class="author-link" href="https://blog.liu-qi.cn/tools/" target="_blank" rel="noopener noreferrer" data-i18n="app.author">Created by @liuqi</a></div><p data-i18n="onboarding.subtitle">精确路由证据</p></div></div><div class="masthead-controls"><div class="language-switch" role="group" aria-label="切换语言" data-i18n-aria-label="language.label"><button type="button" data-language="en" aria-pressed="false">EN</button><button type="button" data-language="zh" aria-pressed="true">中</button></div></div></header>
+    <header class="masthead onboarding-masthead">
+      <div class="brand"><span class="brand-mark"></span><div class="brand-copy"><div class="brand-title-line"><h1>Route Inspector</h1></div><p>自动识别当前路由模型</p></div></div>
+      <span class="signal-pill live">仅保存在本机</span>
+    </header>
     <section class="onboarding-hero">
-      <span class="tag signal" data-i18n="onboarding.badge">路由证据 / V2</span>
-      <h1 data-i18n="onboarding.title">看见响应报告的路由。</h1>
-      <p class="lede" data-i18n="onboarding.lede">Route Inspector 对照 ChatGPT 的请求模型与响应路由字段。它不问模型“你是谁”，不凭速度猜测，也不保存你的聊天正文。</p>
+      <span class="tag signal">自动识别</span>
+      <h1>一眼看见当前实际路由模型。</h1>
+      <p class="lede">不用切换模式。重新加载一个对话时，显示这个对话读取到的模型；之后发送新消息时，自动更新为这条新消息实际路由到的模型。</p>
       <div class="principles">
-        <article class="principle"><span>01 / LIVE</span><h2 data-i18n="onboarding.liveTitle">捕获新请求</h2><p data-i18n="onboarding.liveCopy">切到“实时请求”并发送消息，同时读取 requested 与本轮 response route。</p></article>
-        <article class="principle"><span>02 / RELOAD</span><h2 data-i18n="onboarding.reloadTitle">复查已有回答</h2><p data-i18n="onboarding.reloadCopy">切到“会话重载”并刷新目标会话；优先读取会话响应路由，尚未捕获时以 DOM 标签兜底。</p></article>
-        <article class="principle"><span>03 / EXACT</span><h2 data-i18n="onboarding.exactTitle">显示精确字段</h2><p data-i18n="onboarding.exactCopy">实际路由字段决定 route，模型标签只作补充；不使用百分比。</p></article>
-        <article class="principle"><span>04 / PRIVACY</span><h2 data-i18n="onboarding.privacyTitle">白名单字段，本地留存</h2><p data-i18n="onboarding.privacyCopy">正文、Cookie、Authorization、JWT 和附件不会写入扩展存储。</p></article>
+        <article class="principle"><span>01</span><h2>重新加载对话</h2><p>刷新已有对话后，扩展自动读取当前对话的响应路由信息。</p></article>
+        <article class="principle"><span>02</span><h2>发送新消息</h2><p>一旦发出新消息，扩展自动跟随这次请求，并在捕获到路由后更新当前模型。</p></article>
+        <article class="principle"><span>03</span><h2>主界面只显示结果</h2><p>平时只看当前模型；路由来源、模型标签和耗时等信息放在“高级信息”里。</p></article>
+        <article class="principle"><span>04</span><h2>高级功能放进设置</h2><p>页面浮窗、诊断台、记录上限和数据管理都集中在设置页，不占用主界面。</p></article>
       </div>
-      <div class="toolbar" style="justify-content:flex-start;margin-top:24px"><button id="dashboard" class="button primary" data-i18n="button.openDashboard">打开诊断台</button><button id="options" class="button" data-i18n="onboarding.checkPrivacy">检查隐私设置</button></div>
+      <div class="toolbar" style="justify-content:flex-start;margin-top:24px"><button id="options" class="button primary">打开设置</button></div>
     </section>
   </main>
   <script src="index.js"></script>
