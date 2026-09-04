@@ -14,7 +14,7 @@ describe('Tampermonkey installer', () => {
   it('has installable metadata for ChatGPT and page-context interception', async () => {
     const source = await userscript();
     expect(source.startsWith('// ==UserScript==')).toBe(true);
-    expect(source).toContain('// @version      1.0.9');
+    expect(source).toContain('// @version      1.0.10');
     expect(source).toContain('// @match        https://chatgpt.com/*');
     expect(source).toContain('// @match        https://chat.openai.com/*');
     expect(source).toContain('// @run-at       document-start');
@@ -41,7 +41,7 @@ describe('Tampermonkey installer', () => {
     expect(source).toContain('请求模型与服务器路由不一致');
   });
 
-  it('stays visually small, quiet and away from the composer', async () => {
+  it('blends the compact indicator into the ChatGPT header area', async () => {
     const source = await userscript();
     expect(source).toContain('<button id="pill" type="button">尚未捕获</button>');
     expect(source).toContain('pill.textContent = label;');
@@ -49,8 +49,11 @@ describe('Tampermonkey installer', () => {
     expect(source).toContain('当前实际路由');
     expect(source).toContain('请求模型');
     expect(source).toContain('模型标签');
-    expect(source).toContain('right:18px;top:32vh;');
-    expect(source).toContain('right:0;top:42px;');
+    expect(source).toContain('right:92px;top:56px;');
+    expect(source).toContain('font:500 11px/1.25 inherit');
+    expect(source).toContain('border:0;background:transparent');
+    expect(source).toContain('box-shadow:none');
+    expect(source).toContain('right:0;top:24px;');
     expect(source).not.toContain('用作显式路由证据');
     expect(source).not.toContain('.foot{');
     expect(source).not.toContain('Language');
