@@ -30,7 +30,7 @@ describe('assessRoute', () => {
     });
   });
 
-  it('reports conflict instead of choosing between disagreeing response fields', () => {
+  it('reports conflict only when explicit response route fields disagree', () => {
     const result = assessRoute({
       ...EMPTY_ROUTE_FIELDS,
       requestedModel: 'gpt-5-6-pro',
@@ -55,51 +55,52 @@ describe('assessRoute', () => {
     expect(result.reasons.join(' ')).not.toContain('默认模型');
   });
 
-  it('uses assistant.metadata.model_slug as the response route fallback', () => {
+  it('keeps assistant.metadata.model_slug as a label instead of an actual route fallback', () => {
     const result = assessRoute({
       ...EMPTY_ROUTE_FIELDS,
       requestedModel: 'gpt-5-6-pro',
       responseModelSlug: 'gpt-5-6-pro'
     });
     expect(result).toMatchObject({
-      verdict: 'normal',
-      routeModel: 'gpt-5-6-pro',
-      routeModelSources: ['assistant.metadata.model_slug'],
+      verdict: 'unknown',
+      routeModel: null,
+      routeModelSources: [],
       modelLabel: 'gpt-5-6-pro',
       modelLabelSources: ['assistant.metadata.model_slug']
     });
   });
 
-  it('reports a mismatch when the requested model differs from the label fallback', () => {
+  it('does not call a label-only difference a route mismatch', () => {
     const result = assessRoute({
       ...EMPTY_ROUTE_FIELDS,
       requestedModel: 'gpt-5-6-pro',
       responseModelSlug: 'gpt-5-5-mini'
     });
     expect(result).toMatchObject({
-      verdict: 'mismatch',
-      routeModel: 'gpt-5-5-mini',
-      routeModelSources: ['assistant.metadata.model_slug']
+      verdict: 'unknown',
+      routeModel: null,
+      routeModelSources: [],
+      modelLabel: 'gpt-5-5-mini'
     });
   });
 
-  it('uses a reload assistant label as the response route fallback', () => {
+  it('keeps a reload assistant label visible but unverified', () => {
     const result = assessRoute({ ...EMPTY_ROUTE_FIELDS, responseModelSlug: 'gpt-5-5-mini' });
     expect(result).toMatchObject({
       verdict: 'unknown',
-      routeModel: 'gpt-5-5-mini',
-      routeModelSources: ['assistant.metadata.model_slug'],
+      routeModel: null,
+      routeModelSources: [],
       modelLabel: 'gpt-5-5-mini',
       modelLabelSources: ['assistant.metadata.model_slug']
     });
   });
 
-  it('uses the rendered assistant model as the response route fallback after reload', () => {
+  it('keeps the rendered assistant model visible but unverified after reload', () => {
     const result = assessRoute({ ...EMPTY_ROUTE_FIELDS, domModelSlug: 'gpt-5-6-pro' });
     expect(result).toMatchObject({
       verdict: 'unknown',
-      routeModel: 'gpt-5-6-pro',
-      routeModelSources: ['assistant[data-message-model-slug]'],
+      routeModel: null,
+      routeModelSources: [],
       modelLabel: 'gpt-5-6-pro',
       modelLabelSources: ['assistant[data-message-model-slug]']
     });
@@ -121,24 +122,24 @@ describe('assessRoute', () => {
     });
   });
 
-  it('reports a route-field conflict when an explicit route differs from the model label', () => {
+  it('uses explicit routing when the model label still names the requested model', () => {
     const result = assessRoute({
       ...EMPTY_ROUTE_FIELDS,
-      requestedModel: 'gpt-5-6-pro',
-      responseModelSlug: 'gpt-5-6-pro',
-      resolvedModelSlug: 'gpt-5-5-instant',
-      serverModelSlug: 'gpt-5-5-instant'
+      requestedModel: 'gpt-5-6-thinking',
+      responseModelSlug: 'gpt-5-6-thinking',
+      serverModelSlug: 'gpt-5-5-mini'
     });
     expect(result).toMatchObject({
-      verdict: 'conflict',
-      routeModel: null,
-      routeModelSources: ['resolved_model_slug', 'server_ste_metadata.model_slug', 'assistant.metadata.model_slug'],
-      modelLabel: 'gpt-5-6-pro',
+      verdict: 'mismatch',
+      routeModel: 'gpt-5-5-mini',
+      routeModelSources: ['server_ste_metadata.model_slug'],
+      modelLabel: 'gpt-5-6-thinking',
       modelLabelConflict: false
     });
+    expect(result.reasons.join(' ')).toContain('以显式路由为准');
   });
 
-  it('reports a route-field conflict even when the request matches the explicit route', () => {
+  it('does not let a stale label override a matching explicit route', () => {
     const result = assessRoute({
       ...EMPTY_ROUTE_FIELDS,
       requestedModel: 'gpt-5-5-mini',
@@ -146,14 +147,14 @@ describe('assessRoute', () => {
       resolvedModelSlug: 'gpt-5-5-mini'
     });
     expect(result).toMatchObject({
-      verdict: 'conflict',
-      routeModel: null,
-      routeModelSources: ['resolved_model_slug', 'assistant.metadata.model_slug'],
+      verdict: 'normal',
+      routeModel: 'gpt-5-5-mini',
+      routeModelSources: ['resolved_model_slug'],
       modelLabel: 'gpt-5-6-pro'
     });
   });
 
-  it('stays unknown when no response route model exists', () => {
+  it('stays unknown when no explicit response route model exists', () => {
     expect(assessRoute({ ...EMPTY_ROUTE_FIELDS, requestedModel: 'gpt-5-6-pro' })).toMatchObject({
       verdict: 'unknown', routeModel: null, routeModelSources: []
     });
