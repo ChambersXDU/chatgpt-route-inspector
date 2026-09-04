@@ -26,48 +26,40 @@ export function assessRoute(fields: RouteFields): RouteAssessment {
 
   if (requested) reasons.push(`请求模型：${requested}`);
   for (const candidate of presentRoutes) reasons.push(`${candidate.source}：${candidate.model}（显式响应路由字段）`);
-  for (const candidate of presentLabels) reasons.push(`${candidate.source}：${candidate.model}（模型标签）`);
-  if (modelLabelConflict) reasons.push('模型标签字段互相不同');
+  for (const candidate of presentLabels) reasons.push(`${candidate.source}：${candidate.model}（模型标签，仅作显示/旁证）`);
+  if (modelLabelConflict) reasons.push('模型标签字段互相不同；不作为显式路由冲突');
 
   const explicitRouteConflict = routeModels.length > 1;
-  const explicitRouteModel = explicitRouteConflict ? null : routeModels[0] ?? null;
-  const routeLabelConflict = Boolean(explicitRouteModel && presentLabels.some((candidate) => candidate.model !== explicitRouteModel));
-  if (explicitRouteConflict || routeLabelConflict) {
-    const routeModelSources: ResponseModelSource[] = [
-      ...explicitRouteSources,
-      ...(routeLabelConflict ? modelLabelSources : [])
-    ];
+  if (explicitRouteConflict) {
     return {
       verdict: 'conflict',
       routeModel: null,
-      routeModelSources,
+      routeModelSources: explicitRouteSources,
       modelLabel,
       modelLabelSources,
       modelLabelConflict,
-      reasons: [...reasons, '响应路由证据字段之间存在不一致']
+      reasons: [...reasons, '显式响应路由字段之间存在不一致']
     };
   }
 
-  const routeModel = explicitRouteModel ?? modelLabel;
-  const routeModelSources: ResponseModelSource[] = explicitRouteModel
-    ? explicitRouteSources
-    : modelLabel
-      ? modelLabelSources
-      : [];
+  const routeModel = routeModels[0] ?? null;
+  const routeModelSources: ResponseModelSource[] = routeModel ? explicitRouteSources : [];
   if (!routeModel) {
-    reasons.push(modelLabelConflict
-      ? '模型标签字段互相不同，无法确定响应路由'
-      : '响应中没有可用的响应路由字段或模型标签');
+    reasons.push(modelLabel
+      ? `没有显式响应路由字段；模型标签 ${modelLabel} 不再当作实际路由`
+      : '响应中没有可用的显式响应路由字段');
     return { verdict: 'unknown', routeModel: null, routeModelSources, modelLabel, modelLabelSources, modelLabelConflict, reasons };
   }
 
-  if (!explicitRouteModel) reasons.push(`未取得显式响应路由字段；使用模型标签 ${routeModel} 作为响应路由`);
+  if (modelLabel && modelLabel !== routeModel) {
+    reasons.push(`模型标签 ${modelLabel} 与显式路由 ${routeModel} 不同；以显式路由为准`);
+  }
   if (!requested) {
-    reasons.push('已取得响应路由模型，但当前记录没有对应的请求模型');
+    reasons.push('已取得显式响应路由模型，但当前记录没有对应的请求模型');
     return { verdict: 'unknown', routeModel, routeModelSources, modelLabel, modelLabelSources, modelLabelConflict, reasons };
   }
 
   const verdict = requested === routeModel ? 'normal' : 'mismatch';
-  reasons.push(verdict === 'normal' ? '请求模型与响应路由模型一致' : '请求模型与响应路由模型不一致');
+  reasons.push(verdict === 'normal' ? '请求模型与显式响应路由模型一致' : '请求模型与显式响应路由模型不一致');
   return { verdict, routeModel, routeModelSources, modelLabel, modelLabelSources, modelLabelConflict, reasons };
 }
