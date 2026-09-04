@@ -45,7 +45,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run build:e2e
-      - run: npx playwright test tests/e2e/smoke.spec.ts
+      - run: xvfb-run -a npx playwright test tests/e2e/smoke.spec.ts
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4
