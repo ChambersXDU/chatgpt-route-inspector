@@ -1,8 +1,0 @@
-{
-  "extensionName": {
-    "message": "ChatGPTモデルルート検査 - 実応答モデル確認とGPT Proダウングレード検出"
-  },
-  "extensionDescription": {
-    "message": "ChatGPTで実際に応答したモデルを確認し、GPT Proのダウングレードを検出して、PoW難度を表示します。"
-  }
-}

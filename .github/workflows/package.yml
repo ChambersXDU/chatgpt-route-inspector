@@ -1,4 +1,4 @@
-name: Install Packages
+name: Userscript Package
 
 on:
   push:
@@ -10,12 +10,12 @@ permissions:
   contents: write
 
 concurrency:
-  group: package-${{ github.ref }}
+  group: userscript-package-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   package:
-    name: Build installable extension and userscript
+    name: Build Tampermonkey userscript
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -25,18 +25,16 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Build installers
+      - name: Build userscript package
         run: npm run package
-      - name: Verify extension archive
-        run: unzip -t release/chatgpt-route-inspector-*.zip
-      - name: Verify Tampermonkey script
+      - name: Verify userscript syntax
         run: node --check release/chatgpt-route-inspector-*.user.js
-      - name: Show checksums
-        run: cat release/SHA256SUMS.txt
-      - name: Upload install packages
+      - name: Verify checksum
+        run: cd release && sha256sum -c SHA256SUMS.txt
+      - name: Upload userscript package
         uses: actions/upload-artifact@v4
         with:
-          name: chatgpt-route-inspector-installers-${{ github.sha }}
+          name: chatgpt-route-inspector-userscript-${{ github.sha }}
           path: release/*
           if-no-files-found: error
           retention-days: 30

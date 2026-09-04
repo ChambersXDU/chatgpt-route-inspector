@@ -1,8 +1,0 @@
-{
-  "extensionName": {
-    "message": "Inspector de rutas ChatGPT - Modelo real y downgrade de GPT Pro"
-  },
-  "extensionDescription": {
-    "message": "Consulta qué modelo respondió realmente en ChatGPT, detecta si GPT Pro fue degradado y muestra la dificultad PoW."
-  }
-}

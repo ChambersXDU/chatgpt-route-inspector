@@ -2,17 +2,14 @@
   "name": "chatgpt-route-inspector",
   "version": "1.0.5",
   "private": true,
-  "description": "Privacy-first Chromium extension that reports ChatGPT requested and server-reported resolved models.",
+  "description": "Tampermonkey userscript that reports ChatGPT requested and server-reported route models.",
   "type": "module",
   "scripts": {
-    "build": "node scripts/build.mjs",
-    "build:e2e": "node scripts/build.mjs e2e",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run --coverage",
+    "test": "vitest run tests/unit",
     "test:unit": "vitest run tests/unit",
-    "test:integration": "vitest run tests/integration",
-    "test:e2e": "npm run build:e2e && playwright test",
+    "test:e2e": "playwright test tests/e2e/userscript.spec.ts",
     "package": "node scripts/package.mjs"
   },
   "devDependencies": {

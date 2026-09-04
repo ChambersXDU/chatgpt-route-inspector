@@ -1,8 +1,0 @@
-{
-  "extensionName": {
-    "message": "ChatGPT 模型路由检测器 - 查看真实响应模型，识别 GPT Pro 路由降级"
-  },
-  "extensionDescription": {
-    "message": "查看 ChatGPT 实际回复所使用的模型，识别 GPT Pro 是否被降级，并显示 PoW 难度。"
-  }
-}

@@ -1,73 +1,38 @@
-# Privacy Policy
+# 隐私说明
 
-Effective date: August 11, 2026
+ChatGPT Route Inspector 现在仅提供 Tampermonkey 用户脚本版本。
 
-ChatGPT Route Inspector (the “Extension”) is a local model-route inspection tool for Chromium browsers. This policy explains how the Extension handles data.
+## 脚本读取什么
 
-## Data handled
+脚本只在 `chatgpt.com` 和 `chat.openai.com` 页面运行。它在页面上下文中观察 ChatGPT 自身已经发起的相关 `fetch` 请求，并从请求/响应中提取模型路由相关字段，例如：
 
-The Extension processes only information needed for model-route inspection on `chatgpt.com` and `chat.openai.com`, including:
+- 请求中的模型标识；
+- `server_ste_metadata.model_slug`；
+- `resolved_model_slug`；
+- `assistant.metadata.model_slug`（仅作为模型标签）。
 
-- model identifiers requested by the web client;
-- route models reported by server responses and related model labels;
-- capture mode, evidence sources, inspection status, timestamps, and duration;
-- routing-related metadata such as reasoning effort, conversation mode, and tool-use status;
-- PoW difficulty values;
-- tab IDs, ChatGPT page URLs, and conversation, request, and network-request identifiers;
-- user settings such as language, capture mode, overlay state, and record limit.
+与路由检测无关的请求会原样转发，不做解析。
 
-The Extension temporarily parses requests and responses already sent or received by the ChatGPT page to extract these allowlisted fields. Unfiltered requests and responses are not written to extension storage.
+## 不保存什么
 
-## Data not handled or stored
+当前油猴版只维护页面会话中的最新读取结果，不使用本地数据库保存历史记录，也不会主动上传数据。
 
-The Extension does not store or upload:
+脚本不会主动保存或上传：
 
-- prompt or answer text;
-- cookies, Authorization headers, JWTs, passwords, or other login credentials;
-- attachment contents or filenames;
-- PoW seeds, proof tokens, or device fingerprints;
-- complete network requests, responses, or HAR files.
+- 提示词和回答正文；
+- Cookie、登录凭据或认证信息；
+- 附件内容；
+- 完整 HAR；
+- 未筛选的网络流量。
 
-The Extension contains no advertising, analytics SDK, or user-tracking code.
+## 网络访问
 
-## How data is used
+脚本本身不向第三方服务发送检测数据。`@grant none` 表示它不使用 Tampermonkey 的特权网络 API；它只是观察并转发 ChatGPT 页面自身的网络请求。
 
-Data is handled only to:
+Tampermonkey 对脚本更新的检查由脚本管理器根据 `@updateURL` / `@downloadURL` 完成，当前地址指向本仓库的 Raw `.user.js` 文件。
 
-- display the requested model and the response route reported by the server;
-- identify changes in model routing;
-- display PoW difficulty and diagnostic information;
-- retain local inspection history and generate diagnostic reports requested by the user.
+## 限制
 
-The Extension does not sell data, use data for advertising, or provide data to data brokers or other third parties.
+ChatGPT 的网页接口和内部字段不是公开稳定 API，字段语义可能变化。本工具只能展示页面实际暴露出的信息，不能访问 OpenAI 内部调度、计费、额度或账号风控系统。
 
-## Local storage and retention
-
-Settings and inspection records are stored in `chrome.storage.local` in the current browser profile and are not synchronized to the developer’s servers. The configured record limit controls retention; when the limit is reached, the oldest records are removed automatically.
-
-Users can clear local records from the Settings & Privacy page. Chrome removes the Extension’s local storage when the Extension is uninstalled.
-
-## Data transmission and exports
-
-The Extension does not automatically transmit inspection data to the developer or any third-party server. If a user clicks an author, GitHub, or other external link, the browser opens that website through normal navigation.
-
-Copying a summary, exporting JSON, or exporting a report requires an explicit user action. Exports contain routing-diagnostic fields only. Request identifiers are redacted by default and are included in full only when the user explicitly enables that setting.
-
-## Browser permissions
-
-- `storage`: stores settings and inspection records in the current Chrome profile.
-- `https://chatgpt.com/*` and `https://chat.openai.com/*`: reads allowlisted routing fields on supported ChatGPT pages and displays the page overlay.
-
-The Extension does not request `debugger`, `cookies`, `webRequest`, `history`, or access to all websites.
-
-## Chrome Web Store Limited Use
-
-The Extension’s use of information received from Chrome APIs complies with the Chrome Web Store User Data Policy, including the Limited Use requirements. Data is used only to provide the user-facing features clearly described by the Extension.
-
-## Changes to this policy
-
-If the Extension’s data-handling practices change, this policy will be updated and the effective date above will be revised.
-
-## Contact
-
-For privacy questions, contact the project maintainer through [GitHub Issues](https://github.com/Liu-Bot24/chatgpt-route-inspector/issues).
+本项目是独立的非官方工具，与 OpenAI 不存在隶属、授权或背书关系。
