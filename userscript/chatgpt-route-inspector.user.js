@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ChatGPT Route Inspector（油猴版）
 // @namespace    https://github.com/ChambersXDU/chatgpt-route-inspector
-// @version      1.0.10
+// @version      1.0.11
 // @description  自动显示当前 ChatGPT 实际路由模型；刷新已有对话或发送新消息后自动更新。
 // @author       ChambersXDU
 // @match        https://chatgpt.com/*
@@ -341,7 +341,7 @@
     shadow.innerHTML = `
       <style>
         :host{all:initial}.wrap{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--text-primary,#202123)}
-        button{font:500 11px/1.25 inherit;border:0;background:transparent;color:var(--text-tertiary,#676767);border-radius:0;padding:3px 2px;box-shadow:none;cursor:pointer;white-space:nowrap}
+        button{font-family:inherit;font-size:11px;font-weight:500;line-height:1.25;border:0;background:transparent;color:var(--text-tertiary,#676767);border-radius:0;padding:3px 2px;box-shadow:none;cursor:pointer;white-space:nowrap}
         button:hover{background:transparent;color:var(--text-primary,#202123)}.panel{display:none;position:absolute;right:0;top:24px;width:300px;background:var(--main-surface-primary,#fff);border:1px solid var(--border-light,#e5e5e5);border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.12);padding:14px}
         .panel.open{display:block}.label{font-size:11px;color:var(--text-tertiary,#777)}.model{margin-top:6px;font-size:22px;font-weight:650;letter-spacing:-.02em;overflow-wrap:anywhere}.meta{margin-top:7px;font-size:11px;color:var(--text-tertiary,#777);line-height:1.45}
         .alert{margin-top:10px;padding:8px 10px;border-radius:9px;background:var(--main-surface-secondary,#f5f5f5);font-size:11px;font-weight:600}.rows{margin-top:12px;border-top:1px solid var(--border-light,#eee)}.row{display:grid;grid-template-columns:76px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-light,#f0f0f0);font-size:11px}.row span{color:var(--text-tertiary,#888)}.row code{font:500 11px/1.4 inherit;overflow-wrap:anywhere}
