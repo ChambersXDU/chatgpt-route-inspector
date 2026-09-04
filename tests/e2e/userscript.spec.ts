@@ -1,12 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const userscriptPath = path.join(root, 'userscript', 'chatgpt-route-inspector.user.js');
 
-async function pillText(page: import('@playwright/test').Page): Promise<string | null> {
+async function pillText(page: Page): Promise<string | null> {
   return page.locator('[data-route-inspector-root="userscript"]').evaluate((host) =>
     host.shadowRoot?.querySelector('#pill')?.textContent ?? null
   );
