@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ChatGPT Route Inspector（油猴版）
 // @namespace    https://github.com/ChambersXDU/chatgpt-route-inspector
-// @version      1.0.8
+// @version      1.0.9
 // @description  自动显示当前 ChatGPT 实际路由模型；刷新已有对话或发送新消息后自动更新。
 // @author       ChambersXDU
 // @match        https://chatgpt.com/*
@@ -312,7 +312,7 @@
   function render() {
     if (!pill) return;
     const label = visibleRouteLabel();
-    pill.textContent = `路由模型 · ${label}`;
+    pill.textContent = label;
     if (modelValue) modelValue.textContent = label;
     if (metaValue) {
       metaValue.textContent = currentReading
@@ -358,7 +358,7 @@
             <div class="row"><span>路由来源</span><code id="source">—</code></div>
           </div>
         </div>
-        <button id="pill" type="button">路由模型 · 尚未捕获</button>
+        <button id="pill" type="button">尚未捕获</button>
       </div>`;
     pill = shadow.querySelector('#pill');
     panel = shadow.querySelector('#panel');
